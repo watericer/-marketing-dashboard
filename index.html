@@ -528,16 +528,44 @@ function findSection(rows, keywords) {
 }
 
 function parseData(rows) {
-  const daily  = findSection(rows, ['日期','dau','arpu']);
-  const trends = findSection(rows, ['週起始','wau','黏著度']);
-  const info   = findInfoRows(rows);
-  return { daily, trends, info, raw: rows };
+  // Daily rows: contiguous block where col[0] looks like a full date (YYYY/MM/DD)
+  const dailyData = [];
+  for (let i = 0; i < rows.length; i++) {
+    const f = fCell(rows[i][0]);
+    if (/^\d{4}[\/\-]\d{2}[\/\-]\d{2}/.test(f)) {
+      dailyData.push(rows[i]);
+    } else if (dailyData.length > 0) {
+      break; // stop after first non-date row
+    }
+  }
+
+  // Trend rows: find "週起始" label row, collect date-like rows after it
+  const trendData = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (fCell(rows[i][0]).includes('週起始')) {
+      for (let j = i + 1; j < Math.min(i + 15, rows.length); j++) {
+        const f = fCell(rows[j][0]);
+        if (/^\d{2}-\d{2}$/.test(f) || /^\d{4}[\/\-]\d{2}/.test(f)) {
+          trendData.push(rows[j]);
+        }
+      }
+      break;
+    }
+  }
+
+  // Info: look for season/幣別 anywhere in rows
+  const info = findInfoRows(rows);
+  return {
+    daily:  dailyData.length > 0 ? { data: dailyData } : null,
+    trends: trendData.length > 0 ? { data: trendData } : null,
+    info,
+    raw: rows
+  };
 }
 
 function findInfoRows(rows) {
-  // Find rows with key-value pairs like 遊戲名稱 / 幣別 / 更新日
   const result = {};
-  for (let i = 0; i < Math.min(10, rows.length); i++) {
+  for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     for (let j = 0; j < row.length - 1; j++) {
       const key = fCell(row[j]).trim();
@@ -545,8 +573,7 @@ function findInfoRows(rows) {
       if (['遊戲名稱','幣別','更新日','營運區域'].includes(key) && val) {
         result[key] = val;
       }
-      // Season/week tag
-      if (key.match(/賽季|週次|W\d+/i) && !result.season) result.season = key + (val?' '+val:'');
+      if (key.match(/賽季|週次|W\d+/i) && !result.season) result.season = key + (val ? ' ' + val : '');
     }
   }
   return result;
