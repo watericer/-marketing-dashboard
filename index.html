@@ -405,13 +405,7 @@ let cache = {}; // gid -> parsed data
 const charts = {};
 let personFilter = '';
 let todos = []; // 由 Firebase 即時同步
-let members = [
-  {name:'王小明',role:'行銷總監',color:'#4a6cf7',bg:'rgba(74,108,247,0.2)'},
-  {name:'李小華',role:'社群媒體',color:'#10b981',bg:'rgba(16,185,129,0.2)'},
-  {name:'陳小美',role:'廣告投放',color:'#f59e0b',bg:'rgba(245,158,11,0.2)'},
-  {name:'張小強',role:'用戶研究',color:'#ef4444',bg:'rgba(239,68,68,0.2)'},
-  {name:'林阿志',role:'內容創作',color:'#7c3aed',bg:'rgba(124,58,237,0.2)'},
-];
+let members = []; // 由 Firebase 即時同步
 const MEMBER_COLORS = [
   {color:'#4a6cf7',bg:'rgba(74,108,247,0.2)'},
   {color:'#10b981',bg:'rgba(16,185,129,0.2)'},
@@ -459,6 +453,17 @@ db.ref('todos').on('value', function(snapshot) {
   todos.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
   renderTodos();
   renderPersonStats();
+});
+
+db.ref('members').on('value', function(snapshot) {
+  members = [];
+  snapshot.forEach(function(child) {
+    members.push(Object.assign({_key: child.key}, child.val()));
+  });
+  renderMemberMgmt();
+  renderPersonFilters();
+  renderPersonStats();
+  renderTodos();
 });
 
 // ═══ INIT ═══
@@ -1054,12 +1059,12 @@ function renderAllProductsAnalysis() {
 function renderMemberMgmt() {
   const list = document.getElementById('mbr-list');
   if (!list) return;
-  list.innerHTML = members.map((m,i) => `
+  list.innerHTML = members.map((m) => `
     <div class="mbr-chip">
       <span class="mbr-ava" style="background:${m.bg};color:${m.color}">${m.name[0]}</span>
       <span style="font-weight:600">${m.name}</span>
       ${m.role ? `<span style="color:var(--text-muted)">${m.role}</span>` : ''}
-      <button class="mbr-del" onclick="delMember(${i})" title="刪除 ${m.name}">✕</button>
+      <button class="mbr-del" onclick="delMember('${m._key}')" title="刪除 ${m.name}">✕</button>
     </div>`).join('');
   // Sync dropdown
   const sel = document.getElementById('t-person');
@@ -1074,26 +1079,19 @@ function addMember() {
   if (members.find(m => m.name === name)) { alert(`「${name}」已存在`); return; }
   const palette = MEMBER_COLORS[members.length % MEMBER_COLORS.length];
   const role = document.getElementById('mbr-role').value.trim();
-  members.push({ name, role, ...palette });
+  db.ref('members').push({ name, role, color: palette.color, bg: palette.bg });
   document.getElementById('mbr-name').value = '';
   document.getElementById('mbr-role').value = '';
-  renderMemberMgmt();
-  renderPersonFilters();
-  renderPersonStats();
 }
 
-function delMember(idx) {
-  const m = members[idx];
+function delMember(key) {
+  const m = members.find(m => m._key === key);
   if (!m) return;
   const hasTodos = todos.some(t => t.person === m.name);
   if (hasTodos && !confirm(`「${m.name}」有待辦事項，刪除後仍保留待辦但不顯示於成員卡片。確定繼續？`)) return;
   if (!hasTodos && !confirm(`確定刪除「${m.name}」？`)) return;
-  members.splice(idx, 1);
   if (personFilter === m.name) personFilter = '';
-  renderMemberMgmt();
-  renderPersonFilters();
-  renderPersonStats();
-  renderTodos();
+  db.ref('members/' + key).remove();
 }
 
 // ═══ TODOS ═══
