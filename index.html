@@ -573,7 +573,7 @@ function findInfoRows(rows) {
       if (['遊戲名稱','幣別','更新日','營運區域'].includes(key) && val) {
         result[key] = val;
       }
-      if (key.match(/賽季|週次|W\d+/i) && !result.season) result.season = key + (val ? ' ' + val : '');
+      if (key.match(/\d+賽季|W\d+/i) && !result.season) result.season = key + (val ? ' ' + val : '');
     }
   }
   return result;
@@ -647,7 +647,7 @@ function renderSingleProd(prod, data) {
   document.getElementById('prod-info-text').textContent =
     (info['遊戲名稱']||prod.name) + (info['幣別']?' ｜ 幣別：'+info['幣別']:'') + (info['更新日']?' ｜ 更新：'+info['更新日']:'');
   const seasonEl = document.getElementById('prod-season-tag');
-  const seasonText = info.season || prod.season || '';
+  const seasonText = prod.season || info.season || '';
   seasonEl.textContent = seasonText;
   seasonEl.style.display = seasonText ? 'inline-block' : 'none';
 
