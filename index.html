@@ -159,7 +159,47 @@ tr:hover td{background:rgba(74,108,247,.04)}
 .allp-analysis-card .ah{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .allp-analysis-card .at{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .allp-analysis-card p{font-size:12px;line-height:1.7;color:var(--text-muted);margin-bottom:8px}
-@media(max-width:768px){.g2,.g3,.allp-grid{grid-template-columns:1fr}.fg{grid-template-columns:1fr}.sig-grid{grid-template-columns:1fr}.wow-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){
+  /* Layout grids */
+  .g2,.g3,.allp-grid{grid-template-columns:1fr}
+  .sig-grid{grid-template-columns:1fr}
+  .wow-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* Header: title+badges on row1, prod-tabs on row2 */
+  .hdr{height:auto;padding:8px 12px;gap:6px;align-items:center}
+  .hdr-title{font-size:15px}
+  .prod-tabs{order:10;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0}
+  .prod-tabs::-webkit-scrollbar{display:none}
+  .prod-tab{padding:5px 10px;font-size:12px}
+  .font-btns{margin-left:auto;gap:2px}
+  .font-btn{padding:3px 5px;font-size:11px}
+  .load-badge,#data-ok,#data-err-tag{font-size:11px}
+
+  /* Nav */
+  .nav{padding:0 4px}
+  .nav-tab{padding:10px 12px;font-size:12px}
+
+  /* Main content */
+  .main{padding:12px}
+  .card{padding:14px}
+
+  /* KPI */
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kpi-val{font-size:20px}
+  .kpi-label{font-size:10px}
+
+  /* Person stats */
+  .p-stats{grid-template-columns:repeat(2,1fr)}
+
+  /* Add todo form: 2 cols */
+  .fg{grid-template-columns:1fr 1fr}
+
+  /* All-products */
+  .allp-card{padding:14px}
+
+  /* Password card */
+  .pw-card{width:88%;padding:30px 20px}
+}
 </style>
 </head>
 <body>
