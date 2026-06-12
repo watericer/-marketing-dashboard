@@ -171,7 +171,6 @@ tr:hover td{background:rgba(74,108,247,.04)}
     <input class="pw-in" type="password" id="pw-in" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')checkPw()">
     <button class="pw-btn" onclick="checkPw()">進入</button>
     <div class="pw-err" id="pw-err">密碼錯誤，請再試一次</div>
-    <div style="margin-top:14px;font-size:11px;color:var(--text-muted)">Demo 密碼：demo123</div>
   </div>
 </div>
 
@@ -196,7 +195,7 @@ tr:hover td{background:rgba(74,108,247,.04)}
       <div class="spinner"></div><span id="badge-msg">載入中</span>
     </div>
     <div id="data-ok" style="display:none;font-size:12px;color:var(--green)">✓ Google Sheets</div>
-    <div id="data-err-tag" style="display:none;font-size:12px;color:var(--yellow)">⚠ 使用示範資料</div>
+    <div id="data-err-tag" style="display:none;font-size:12px;color:var(--text-muted)">示範資料 W24</div>
     <div class="font-btns">
       <div class="font-btn" onclick="setFs(12)">A⁻</div>
       <div class="font-btn" onclick="setFs(14)">A</div>
@@ -444,7 +443,7 @@ const meetings = [
 
 // ═══ AUTH ═══
 function checkPw() {
-  if (document.getElementById('pw-in').value === 'demo123') {
+  if (document.getElementById('pw-in').value === 'Envoy82857376') {
     document.getElementById('pw-overlay').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     initApp();
