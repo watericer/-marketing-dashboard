@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行銷例會 Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;--border:#2d3151;--accent:#4a6cf7;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--text:#e2e8f0;--text-muted:#94a3b8;--fs:14px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);min-height:100vh}
+/* Password */
+#pw-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000}
+.pw-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:48px;width:360px;text-align:center}
+.pw-card h2{font-size:22px;margin-bottom:8px}.pw-card p{color:var(--text-muted);margin-bottom:24px;font-size:13px}
+.pw-in{width:100%;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;margin-bottom:16px;outline:none}
+.pw-in:focus{border-color:var(--accent)}
+.pw-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:white;font-size:15px;cursor:pointer}
+.pw-btn:hover{background:#3858e8}.pw-err{color:var(--red);font-size:12px;margin-top:8px;display:none}
+/* App */
+#app{display:none}
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:12px;height:54px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.hdr-title{font-size:17px;font-weight:700}
+.prod-tabs{display:flex;gap:3px}
+.prod-tab{padding:5px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;border:1px solid transparent;color:var(--text-muted);transition:all .2s}
+.prod-tab.active{background:var(--accent);color:white;border-color:var(--accent)}
+.prod-tab:hover:not(.active){background:var(--bg3);color:var(--text)}
+.load-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)}
+.spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.font-btns{margin-left:auto;display:flex;gap:3px}
+.font-btn{padding:4px 7px;border-radius:4px;cursor:pointer;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:12px}
+.font-btn:hover{color:var(--text);border-color:var(--accent)}
+/* Nav */
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;overflow-x:auto}
+.nav-tab{padding:13px 18px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text-muted);border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+.nav-tab:hover{color:var(--text)}.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Main */
+.main{padding:20px;max-width:1600px;margin:0 auto}
+.tab-pane{display:none}.tab-pane.active{display:block}
+/* Card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .2s}
+.kpi-card:hover{border-color:var(--accent)}
+.kpi-label{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.kpi-val{font-size:24px;font-weight:700;margin-bottom:5px}
+.kpi-wow{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px}
+.up{background:rgba(16,185,129,.15);color:var(--green)}.dn{background:rgba(239,68,68,.15);color:var(--red)}.fl{background:rgba(148,163,184,.15);color:var(--text-muted)}
+/* Charts */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.chart-box{position:relative;height:230px}
+/* Tables */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg3);padding:9px 11px;text-align:left;font-weight:600;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid rgba(45,49,81,.4);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(74,108,247,.04)}
+/* Status */
+.sb{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+.s-todo{background:rgba(148,163,184,.15);color:var(--text-muted)}
+.s-wip{background:rgba(74,108,247,.15);color:#7ca3ff}
+.s-done{background:rgba(16,185,129,.15);color:var(--green)}
+.s-late{background:rgba(239,68,68,.15);color:var(--red)}
+.s-rev{background:rgba(245,158,11,.15);color:var(--yellow)}
+.p-hi{background:rgba(239,68,68,.15);color:var(--red);border-radius:4px;padding:2px 5px;font-size:11px}
+.p-md{background:rgba(245,158,11,.15);color:var(--yellow);border-radius:4px;padding:2px 5px;font-size:11px}
+.p-lo{background:rgba(16,185,129,.15);color:var(--green);border-radius:4px;padding:2px 5px;font-size:11px}
+/* Signals */
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sig{background:var(--bg3);border-radius:8px;padding:11px 13px;display:flex;align-items:flex-start;gap:9px}
+.dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.dot.g{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot.y{background:var(--yellow);box-shadow:0 0 5px var(--yellow)}
+.dot.r{background:var(--red);box-shadow:0 0 5px var(--red)}
+/* WoW */
+.wow-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.wow-item{background:var(--bg3);border-radius:8px;padding:11px}
+.wow-lbl{font-size:11px;color:var(--text-muted);margin-bottom:3px}
+.wow-cur{font-size:16px;font-weight:700;margin-bottom:2px}
+.wow-prv{font-size:11px;color:var(--text-muted);margin-bottom:2px}
+.wow-chg{font-size:12px;font-weight:600}
+/* Person stats */
+.p-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.p-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s}
+.p-card:hover,.p-card.active{border-color:var(--accent);transform:translateY(-1px)}
+.p-ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:8px}
+.p-name{font-weight:600;font-size:13px;margin-bottom:3px}
+.p-role{font-size:11px;color:var(--text-muted);margin-bottom:8px}
+.p-pt{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:3px}
+.prog-bar{background:var(--bg3);border-radius:3px;height:5px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .3s}
+/* Member mgmt */
+.mbr-panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px}
+.mbr-list{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.mbr-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;font-size:12px}
+.mbr-ava{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.mbr-del{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0 0 0 2px;line-height:1;transition:color .15s}
+.mbr-del:hover{color:var(--red)}
+.mbr-add-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+/* Filters */
+.pf-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.pf-btn{padding:5px 12px;border-radius:16px;cursor:pointer;font-size:12px;border:1px solid var(--border);color:var(--text-muted);background:var(--bg2);transition:all .2s}
+.pf-btn.active{background:var(--accent);border-color:var(--accent);color:white}
+.pf-btn:hover:not(.active){border-color:var(--accent);color:var(--text)}
+/* Add todo */
+.add-form{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.fg{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end}
+.fl-lbl{display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px}
+.fi,.fs{width:100%;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;outline:none}
+.fi:focus,.fs:focus{border-color:var(--accent)}
+.btn-p{padding:7px 16px;background:var(--accent);border:none;border-radius:7px;color:white;cursor:pointer;font-size:12px;white-space:nowrap}
+.btn-p:hover{background:#3858e8}
+.btn-ic{background:transparent;border:none;cursor:pointer;color:var(--text-muted);padding:3px 5px;border-radius:4px;transition:all .2s;font-size:13px}
+.btn-ic:hover{color:var(--text);background:var(--bg3)}
+.btn-del:hover{background:rgba(239,68,68,.1)!important;color:var(--red)!important}
+.ie{background:transparent;border:1px solid transparent;color:var(--text);font-size:12px;padding:2px 4px;border-radius:4px;cursor:pointer;font-family:inherit}
+.ie:hover{border-color:var(--border);background:var(--bg3)}
+.ie:focus{border-color:var(--accent);background:var(--bg3);outline:none}
+/* Meeting */
+.m-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.m-hdr{padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:background .2s}
+.m-hdr:hover{background:var(--bg3)}
+.m-dt{background:var(--accent);color:white;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;flex-shrink:0}
+.m-title{font-size:14px;font-weight:600}.m-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.m-arr{margin-left:auto;color:var(--text-muted);font-size:11px;transition:transform .2s}
+.m-arr.open{transform:rotate(180deg)}
+.m-body{display:none;padding:0 18px 16px}.m-body.open{display:block}
+.m-sec-lbl{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 7px}
+.m-ai{background:var(--bg3);border-radius:7px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+/* All products */
+.allp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.allp-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px}
+.allp-prod{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.allp-dot{width:8px;height:8px;border-radius:50%}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;background:rgba(74,108,247,.15);color:#7ca3ff}
+/* Section header */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sh-title{font-size:15px;font-weight:700}
+/* Loading overlay */
+#load-overlay{position:fixed;inset:0;background:rgba(15,17,23,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:12px;display:none}
+.load-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+/* Error banner */
+#err-banner{display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 16px;margin:12px 0;font-size:13px;color:var(--red)}
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#4a5077}
+.a-tab{padding:3px 10px;border-radius:5px;cursor:pointer;font-size:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text-muted);transition:all .15s}
+.a-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.allp-analysis-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.allp-analysis-card .ah{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.allp-analysis-card .at{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.allp-analysis-card p{font-size:12px;line-height:1.7;color:var(--text-muted);margin-bottom:8px}
+@media(max-width:768px){.g2,.g3,.allp-grid{grid-template-columns:1fr}.fg{grid-template-columns:1fr}.sig-grid{grid-template-columns:1fr}.wow-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- Password -->
+<div id="pw-overlay">
+  <div class="pw-card">
+    <div style="font-size:34px;margin-bottom:10px">📊</div>
+    <h2>行銷例會 Dashboard</h2>
+    <p>請輸入密碼以繼續</p>
+    <input class="pw-in" type="password" id="pw-in" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">進入</button>
+    <div class="pw-err" id="pw-err">密碼錯誤，請再試一次</div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text-muted)">Demo 密碼：demo123</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <!-- Loading overlay -->
+  <div id="load-overlay">
+    <div class="load-spinner"></div>
+    <div style="font-size:13px;color:var(--text-muted)" id="load-msg">正在從 Google Sheets 載入數據...</div>
+  </div>
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-title">📊 行銷例會</div>
+    <div class="prod-tabs" id="prod-tabs">
+      <div class="prod-tab active" data-idx="0" onclick="switchProd(0)">蛋仔派對</div>
+      <div class="prod-tab" data-idx="1" onclick="switchProd(1)">逆水寒</div>
+      <div class="prod-tab" data-idx="2" onclick="switchProd(2)">哈利波特</div>
+      <div class="prod-tab" data-idx="3" onclick="switchProd(3)">⊞ 全產品</div>
+    </div>
+    <div class="load-badge" id="data-badge" style="display:none">
+      <div class="spinner"></div><span id="badge-msg">載入中</span>
+    </div>
+    <div id="data-ok" style="display:none;font-size:12px;color:var(--green)">✓ Google Sheets</div>
+    <div id="data-err-tag" style="display:none;font-size:12px;color:var(--yellow)">⚠ 使用示範資料</div>
+    <div class="font-btns">
+      <div class="font-btn" onclick="setFs(12)">A⁻</div>
+      <div class="font-btn" onclick="setFs(14)">A</div>
+      <div class="font-btn" onclick="setFs(16)">A⁺</div>
+      <div class="font-btn" onclick="setFs(18)">A⁺⁺</div>
+    </div>
+  </div>
+
+  <!-- Nav tabs -->
+  <div class="nav">
+    <div class="nav-tab active" onclick="switchTab(0)">週報總覽</div>
+    <div class="nav-tab" onclick="switchTab(1)">每日明細</div>
+    <div class="nav-tab" onclick="switchTab(2)">近10週趨勢</div>
+    <div class="nav-tab" onclick="switchTab(3)">待辦追蹤</div>
+    <div class="nav-tab" onclick="switchTab(4)">例會記錄</div>
+  </div>
+
+  <div class="main">
+    <div id="err-banner"></div>
+
+    <!-- Tab 0: 週報總覽 -->
+    <div class="tab-pane active" id="tp-0">
+      <!-- All products view -->
+      <div id="allp-view" style="display:none">
+        <div style="font-size:15px;font-weight:700;margin-bottom:14px">⊞ 全產品 KPI 比較</div>
+        <div class="allp-grid" id="allp-grid"></div>
+        <div class="card"><div class="card-title">三產品核心指標對比</div>
+          <div class="tbl-wrap"><table><thead><tr>
+            <th>產品</th><th>週均DAU</th><th>WoW</th><th>WAU</th><th>WoW</th>
+            <th>周流水</th><th>WoW</th><th>課金率</th><th>新增帳號</th><th>ARPPU</th>
+          </tr></thead><tbody id="allp-tbody"></tbody></table></div>
+        </div>
+        <div class="allp-grid" id="allp-analysis-grid" style="margin-top:14px"></div>
+      </div>
+      <!-- Single product view -->
+      <div id="single-view">
+        <!-- Basic info + KPI -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:600" id="prod-info-text"></div>
+          <div class="tag" id="prod-season-tag"></div>
+        </div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="g2">
+          <div class="card"><div class="card-title">WoW 環比 vs 上週</div><div class="wow-grid" id="wow-grid"></div></div>
+          <div class="card"><div class="card-title">訊號分析 本週重點</div><div class="sig-grid" id="signals"></div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="card-title">本週 DAU 走勢 7天</div><div class="chart-box"><canvas id="c-dau7"></canvas></div></div>
+          <div class="card"><div class="card-title">本週流水走勢 7天</div><div class="chart-box"><canvas id="c-rev7"></canvas></div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="card-title">活躍分析（平日/假日 DAU）</div><div class="chart-box"><canvas id="c-active"></canvas></div></div>
+          <div class="card"><div class="card-title">商業化分析（流水 vs ARPPU）</div><div class="chart-box"><canvas id="c-comm"></canvas></div></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span>活躍分析 本週</span>
+              <div style="display:flex;gap:3px" id="analysis-tabs">
+                <button class="a-tab active" onclick="switchAnalysisTab(0)">小</button>
+                <button class="a-tab" onclick="switchAnalysisTab(1)">中</button>
+                <button class="a-tab" onclick="switchAnalysisTab(2)">大</button>
+              </div>
+            </div>
+            <div id="active-analysis-text" style="font-size:13px;line-height:1.75;color:var(--text-muted);white-space:pre-wrap"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px">商業化分析 本週</div>
+            <div id="biz-analysis-text" style="font-size:13px;line-height:1.75;color:var(--text-muted);white-space:pre-wrap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 1: 每日明細 -->
+    <div class="tab-pane" id="tp-1">
+      <div class="g3">
+        <div class="card"><div class="card-title">DAU 日</div><div class="chart-box"><canvas id="c-d-dau"></canvas></div></div>
+        <div class="card"><div class="card-title">流水 日</div><div class="chart-box"><canvas id="c-d-rev"></canvas></div></div>
+        <div class="card"><div class="card-title">ARPU / ARPPU 日</div><div class="chart-box"><canvas id="c-d-arpu"></canvas></div></div>
+      </div>
+      <div class="card"><div class="card-title">每日 KPI 明細</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>日期</th><th>星期</th><th>DAU</th><th>新增帳號</th><th>付費玩家</th><th>課金率</th><th>流水</th><th>ARPU</th><th>ARPPU</th><th>次留</th><th>ACU</th><th>PCU</th><th>在線(分)</th><th>備註</th></tr></thead>
+          <tbody id="daily-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Tab 2: 近10週趨勢 -->
+    <div class="tab-pane" id="tp-2">
+      <div class="g2">
+        <div class="card"><div class="card-title">週均 DAU 趨勢</div><div class="chart-box"><canvas id="c-w-dau"></canvas></div></div>
+        <div class="card"><div class="card-title">周流水趨勢</div><div class="chart-box"><canvas id="c-w-rev"></canvas></div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="card-title">WAU 趨勢</div><div class="chart-box"><canvas id="c-w-wau"></canvas></div></div>
+        <div class="card"><div class="card-title">黏著度 (DAU/WAU) 趨勢</div><div class="chart-box"><canvas id="c-w-sticky"></canvas></div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="card-title">新增帳號趨勢</div><div class="chart-box"><canvas id="c-w-new"></canvas></div></div>
+        <div class="card"><div class="card-title">周付費率趨勢</div><div class="chart-box"><canvas id="c-w-pay"></canvas></div></div>
+      </div>
+      <div class="card"><div class="card-title">近10週數據明細</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>週起始</th><th>日均DAU</th><th>WoW</th><th>WAU</th><th>WoW</th><th>黏著度</th><th>周流水</th><th>WoW</th><th>付費率</th><th>WoW</th><th>新增帳號</th><th>周ARPPU</th><th>備註</th></tr></thead>
+          <tbody id="trend-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Tab 3: 待辦追蹤 -->
+    <div class="tab-pane" id="tp-3">
+      <div class="add-form">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px">➕ 新增待辦事項</div>
+        <div class="fg">
+          <div><label class="fl-lbl">任務名稱 *</label><input class="fi" id="t-task" placeholder="輸入任務描述..."></div>
+          <div><label class="fl-lbl">負責人 *</label>
+            <select class="fs" id="t-person">
+              <option value="">選擇負責人</option>
+            </select></div>
+          <div><label class="fl-lbl">截止日期</label><input class="fi" type="date" id="t-due"></div>
+          <div><label class="fl-lbl">優先級</label>
+            <select class="fs" id="t-pri">
+              <option value="高">🔴 高</option><option value="中" selected>🟡 中</option><option value="低">🟢 低</option>
+            </select></div>
+          <div><label class="fl-lbl">&nbsp;</label><button class="btn-p" onclick="addTodo()">新增</button></div>
+        </div>
+      </div>
+      <!-- Member management -->
+      <div class="mbr-panel">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">👥 成員管理</div>
+        <div class="mbr-list" id="mbr-list"></div>
+        <div class="mbr-add-row">
+          <input class="fi" id="mbr-name" placeholder="姓名" style="width:110px">
+          <input class="fi" id="mbr-role" placeholder="職責（選填）" style="width:140px">
+          <button class="btn-p" onclick="addMember()">＋ 新增成員</button>
+        </div>
+      </div>
+
+      <div id="p-stats-row"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="pf-row" id="pf-row" style="margin-bottom:0"></div>
+        <div style="margin-left:auto;display:flex;gap:7px">
+          <select class="fs" id="f-status" onchange="renderTodos()" style="width:110px">
+            <option value="">全部狀態</option>
+            <option>待開始</option><option>進行中</option><option>審核中</option><option>已完成</option><option>延遲</option>
+          </select>
+          <select class="fs" id="f-pri" onchange="renderTodos()" style="width:95px">
+            <option value="">全部優先</option><option>高</option><option>中</option><option>低</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh">
+          <div class="sh-title" id="todo-title">全部待辦</div>
+          <div style="font-size:12px;color:var(--text-muted)" id="todo-cnt"></div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>任務名稱</th><th>負責人</th><th>來源</th><th>截止</th><th>優先</th><th>狀態</th><th style="min-width:130px">進度</th><th>備註</th><th>操作</th></tr></thead>
+          <tbody id="todo-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Tab 4: 例會記錄 -->
+    <div class="tab-pane" id="tp-4">
+      <div class="sh" style="margin-bottom:16px">
+        <div class="sh-title">例會記錄</div>
+        <div style="font-size:12px;color:var(--text-muted)">最近 4 次</div>
+      </div>
+      <div id="meeting-list"></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══ CONFIG ═══
+const SHEET_ID = '1LMeUj15elnFDDSI-ZiIhAQKGsoc6ZbpneTqrP0vAwKg';
+const PRODUCTS = [
+  { name:'蛋仔派對', gid:'731050234', color:'#4a6cf7', bg:'rgba(74,108,247,0.15)', season:'30賽季W5' },
+  { name:'逆水寒',   gid:'1765419',   color:'#10b981', bg:'rgba(16,185,129,0.15)', season:'2.2.3賽季第2週',
+    // 逆水寒日報多「雙平台下載」欄(col2)，各指標欄位向後移
+    cols:{dau:4, newAcc:3, payers:7, rev:9, arpu:5, arppu:6} },
+  { name:'哈利波特', gid:'1928310003', color:'#f59e0b', bg:'rgba(245,158,11,0.15)', season:'20賽季第2週' },
+];
+
+// ═══ STATE ═══
+let curProd = 0; // 0-2 = single product, 3 = all
+let cache = {}; // gid -> parsed data
+const charts = {};
+let personFilter = '';
+let nextTodoId = 16;
+let todos = [
+  {id:1,task:'規劃 W25 活動上線節奏與資源排程',person:'王小明',source:'W24 例會',due:'2026/06/12',pri:'高',status:'進行中',progress:60,note:'需跨部門對齊'},
+  {id:2,task:'製作 6 月份暑期活動素材包（Banner×3, 影片×1）',person:'陳小美',source:'W24 例會',due:'2026/06/13',pri:'高',status:'進行中',progress:40,note:'需確認視覺方向'},
+  {id:3,task:'輸出上週廣告投放 ROI 分析報告',person:'陳小美',source:'W23 例會',due:'2026/06/10',pri:'高',status:'已完成',progress:100,note:'已上傳 Drive'},
+  {id:4,task:'撰寫 W24 社群週報並同步至 Slack',person:'李小華',source:'W24 例會',due:'2026/06/09',pri:'中',status:'已完成',progress:100,note:''},
+  {id:5,task:'調查競品近期增長策略，整理成競品簡報',person:'張小強',source:'W24 例會',due:'2026/06/14',pri:'中',status:'進行中',progress:25,note:''},
+  {id:6,task:'撰寫暑期活動 Blog 文章 2 篇',person:'林阿志',source:'W24 例會',due:'2026/06/15',pri:'中',status:'待開始',progress:0,note:''},
+  {id:7,task:'更新官方 Facebook 粉絲團封面照',person:'李小華',source:'W23 例會',due:'2026/06/10',pri:'低',status:'已完成',progress:100,note:''},
+  {id:8,task:'整理 KOL 合作清單並提交審核',person:'王小明',source:'W23 例會',due:'2026/06/11',pri:'高',status:'審核中',progress:90,note:'待主管確認'},
+  {id:9,task:'建立新用戶問卷並部署至遊戲內',person:'張小強',source:'W23 例會',due:'2026/06/16',pri:'中',status:'待開始',progress:0,note:''},
+  {id:10,task:'製作 YouTube 攻略短片腳本',person:'林阿志',source:'W24 例會',due:'2026/06/18',pri:'低',status:'待開始',progress:0,note:'配合版本更新'},
+  {id:11,task:'分析上週活動轉換率並提出優化建議',person:'陳小美',source:'W24 例會',due:'2026/06/11',pri:'高',status:'延遲',progress:10,note:'資料還未完整'},
+  {id:12,task:'更新行銷月度 Dashboard 到 Google Sheets',person:'王小明',source:'W24 例會',due:'2026/06/13',pri:'中',status:'待開始',progress:0,note:''},
+  {id:13,task:'協調 KOL 直播合作日期（目標 6/20）',person:'李小華',source:'W24 例會',due:'2026/06/12',pri:'高',status:'進行中',progress:50,note:'已聯絡 3 位 KOL'},
+  {id:14,task:'整理用戶回饋報告（NPS 調查結果）',person:'張小強',source:'W23 例會',due:'2026/06/09',pri:'中',status:'已完成',progress:100,note:''},
+  {id:15,task:'拍攝暑假主題短視頻（TikTok×2）',person:'林阿志',source:'W24 例會',due:'2026/06/20',pri:'中',status:'待開始',progress:0,note:'需協調攝影師'},
+];
+let members = [
+  {name:'王小明',role:'行銷總監',color:'#4a6cf7',bg:'rgba(74,108,247,0.2)'},
+  {name:'李小華',role:'社群媒體',color:'#10b981',bg:'rgba(16,185,129,0.2)'},
+  {name:'陳小美',role:'廣告投放',color:'#f59e0b',bg:'rgba(245,158,11,0.2)'},
+  {name:'張小強',role:'用戶研究',color:'#ef4444',bg:'rgba(239,68,68,0.2)'},
+  {name:'林阿志',role:'內容創作',color:'#7c3aed',bg:'rgba(124,58,237,0.2)'},
+];
+const MEMBER_COLORS = [
+  {color:'#4a6cf7',bg:'rgba(74,108,247,0.2)'},
+  {color:'#10b981',bg:'rgba(16,185,129,0.2)'},
+  {color:'#f59e0b',bg:'rgba(245,158,11,0.2)'},
+  {color:'#ef4444',bg:'rgba(239,68,68,0.2)'},
+  {color:'#7c3aed',bg:'rgba(124,58,237,0.2)'},
+  {color:'#14b8a6',bg:'rgba(20,184,166,0.2)'},
+  {color:'#f97316',bg:'rgba(249,115,22,0.2)'},
+  {color:'#ec4899',bg:'rgba(236,72,153,0.2)'},
+  {color:'#06b6d4',bg:'rgba(6,182,212,0.2)'},
+  {color:'#84cc16',bg:'rgba(132,204,22,0.2)'},
+];
+const meetings = [
+  {date:'2026/06/04',title:'W24 行銷例會',att:'王小明、李小華、陳小美、張小強、林阿志',dur:'60 分鐘',
+   topics:['本週 KPI 回顧：三款遊戲整體流水達標，蛋仔派對流水 WoW +2%','暑期活動規劃討論：確認 W25~W28 活動節奏','KOL 合作進度更新：已洽談 3 位頭部 KOL','競品動態：競品下載量回升，需關注'],
+   actions:[{p:'王小明',t:'規劃 W25 活動節奏',d:'6/12',s:'進行中'},{p:'陳小美',t:'製作暑期活動素材包',d:'6/13',s:'進行中'},{p:'李小華',t:'協調 KOL 直播合作',d:'6/12',s:'進行中'},{p:'張小強',t:'調查競品增長策略',d:'6/14',s:'進行中'},{p:'林阿志',t:'撰寫暑期活動 Blog 文章',d:'6/15',s:'待開始'}]},
+  {date:'2026/05/28',title:'W23 行銷例會',att:'王小明、李小華、陳小美、張小強、林阿志',dur:'75 分鐘',
+   topics:['本週 KPI 回顧：整體表現穩健，哈利波特新增帳號突破','廣告投放優化：Facebook 素材更換後 CTR 提升','NPS 用戶調查設計討論','6 月份社群內容方向確認'],
+   actions:[{p:'陳小美',t:'輸出廣告投放 ROI 分析報告',d:'6/10',s:'已完成'},{p:'李小華',t:'更新 Facebook 封面照',d:'6/10',s:'已完成'},{p:'張小強',t:'建立新用戶問卷',d:'6/16',s:'待開始'},{p:'王小明',t:'整理 KOL 合作清單',d:'6/11',s:'審核中'}]},
+  {date:'2026/05/21',title:'W22 行銷例會',att:'王小明、李小華、陳小美、張小強',dur:'60 分鐘',
+   topics:['本週 KPI 回顧：逆水寒 WAU 創季度新高','5 月份月報總結','暑期大型活動預算申請討論','TikTok 短影音投入策略'],
+   actions:[{p:'王小明',t:'提交暑期活動預算申請',d:'5/28',s:'已完成'},{p:'林阿志',t:'制定 TikTok 內容計畫',d:'5/30',s:'已完成'},{p:'陳小美',t:'分析 5 月廣告各渠道表現',d:'5/29',s:'已完成'}]},
+  {date:'2026/05/14',title:'W21 行銷例會',att:'王小明、李小華、陳小美、林阿志',dur:'50 分鐘',
+   topics:['本週 KPI 回顧：蛋仔派對 DAU 略低於目標','五月節活動複盤：轉換率不達預期','下一版本行銷節奏確認'],
+   actions:[{p:'陳小美',t:'撰寫五月節活動複盤報告',d:'5/20',s:'已完成'},{p:'王小明',t:'對齊版本行銷計畫',d:'5/22',s:'已完成'}]},
+];
+
+// ═══ AUTH ═══
+function checkPw() {
+  if (document.getElementById('pw-in').value === 'demo123') {
+    document.getElementById('pw-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('pw-err').style.display = 'block';
+  }
+}
+
+// ═══ INIT ═══
+function initApp() {
+  renderMemberMgmt();
+  renderPersonFilters();
+  renderPersonStats();
+  renderTodos();
+  renderMeetings();
+  loadProduct(0);
+}
+
+// ═══ NAVIGATION ═══
+function switchTab(idx) {
+  document.querySelectorAll('.tab-pane').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  document.querySelectorAll('.nav-tab').forEach((el,i)=>el.classList.toggle('active',i===idx));
+}
+function setFs(s) { document.documentElement.style.setProperty('--fs',s+'px'); }
+
+// ═══ PRODUCT SWITCH ═══
+async function switchProd(idx) {
+  curProd = idx;
+  document.querySelectorAll('.prod-tab').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  document.getElementById('allp-view').style.display = idx===3?'block':'none';
+  document.getElementById('single-view').style.display = idx===3?'none':'block';
+
+  if (idx === 3) {
+    await loadAllProducts();
+  } else {
+    await loadProduct(idx);
+  }
+}
+
+// ═══ GOOGLE SHEETS FETCH ═══
+async function fetchSheet(gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  let res;
+  try { res = await fetch(url, {signal: ctrl.signal}); }
+  finally { clearTimeout(timer); }
+  const text = await res.text();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Invalid Sheets response');
+  const json = JSON.parse(match[0]);
+  if (json.status && json.status !== 'ok') throw new Error(json.errors?.[0]?.message || 'Sheets error');
+
+  return (json.table?.rows || []).map(row =>
+    (row.c || []).map(cell => ({
+      v: cell?.v ?? null,
+      f: String(cell?.f ?? (cell?.v != null ? cell.v : ''))
+    }))
+  );
+}
+
+function fCell(cell) { return cell?.f ?? ''; }
+function vCell(cell) { return cell?.v ?? null; }
+
+// ═══ SECTION PARSING ═══
+function findSection(rows, keywords) {
+  for (let i = 0; i < rows.length; i++) {
+    const rowStr = rows[i].map(c=>fCell(c).toLowerCase()).join('|');
+    const hits = keywords.filter(kw => rowStr.includes(kw.toLowerCase())).length;
+    if (hits >= Math.min(2, keywords.length)) {
+      const data = [];
+      for (let j = i+1; j < rows.length; j++) {
+        const nonEmpty = rows[j].filter(c=>fCell(c) && fCell(c)!=='–' && fCell(c)!=='-' && fCell(c).trim());
+        if (nonEmpty.length === 0) break;
+        data.push(rows[j]);
+        if (data.length >= 20) break;
+      }
+      if (data.length > 0) return { headerIdx: i, header: rows[i], data };
+    }
+  }
+  return null;
+}
+
+function parseData(rows) {
+  const daily  = findSection(rows, ['日期','dau','arpu']);
+  const trends = findSection(rows, ['週起始','wau','黏著度']);
+  const info   = findInfoRows(rows);
+  return { daily, trends, info, raw: rows };
+}
+
+function findInfoRows(rows) {
+  // Find rows with key-value pairs like 遊戲名稱 / 幣別 / 更新日
+  const result = {};
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    const row = rows[i];
+    for (let j = 0; j < row.length - 1; j++) {
+      const key = fCell(row[j]).trim();
+      const val = fCell(row[j+1]).trim();
+      if (['遊戲名稱','幣別','更新日','營運區域'].includes(key) && val) {
+        result[key] = val;
+      }
+      // Season/week tag
+      if (key.match(/賽季|週次|W\d+/i) && !result.season) result.season = key + (val?' '+val:'');
+    }
+  }
+  return result;
+}
+
+// ═══ LOAD PRODUCT ═══
+function loadFromFallback(prod) {
+  if (!cache[prod.gid]) {
+    const fb = FALLBACK_DB[prod.gid] || FALLBACK_DB['731050234'];
+    cache[prod.gid] = {
+      daily:  {data: fb.daily},
+      trends: {data: fb.trend},
+      info:   {'遊戲名稱':prod.name, '幣別':fb.currency, '更新日':fb.updated, season:fb.season}
+    };
+  }
+}
+
+async function loadProduct(idx) {
+  const prod = PRODUCTS[idx];
+  showBadge(true, '載入 '+prod.name);
+  hideErr();
+  loadFromFallback(prod);
+  renderSingleProd(prod, cache[prod.gid]);
+  document.getElementById('data-err-tag').style.display = 'block';
+  document.getElementById('data-ok').style.display = 'none';
+  showBadge(false);
+
+  // Try live Sheets in background; only update if real data found
+  try {
+    const rows = await fetchSheet(prod.gid);
+    const parsed = parseData(rows);
+    if ((parsed.daily?.data?.length || 0) > 0) {
+      cache[prod.gid] = parsed;
+      renderSingleProd(prod, cache[prod.gid]);
+      document.getElementById('data-ok').style.display = 'block';
+      document.getElementById('data-err-tag').style.display = 'none';
+    }
+  } catch(e) { /* stay on fallback */ }
+}
+
+async function loadAllProducts() {
+  showBadge(true, '載入全產品');
+  PRODUCTS.forEach(p => loadFromFallback(p));
+  renderAllProducts();
+  document.getElementById('data-err-tag').style.display = 'block';
+  document.getElementById('data-ok').style.display = 'none';
+  showBadge(false);
+
+  // Try live in background; only update products that return real data
+  try {
+    await Promise.all(PRODUCTS.map(async p => {
+      const rows = await fetchSheet(p.gid);
+      const parsed = parseData(rows);
+      if ((parsed.daily?.data?.length || 0) > 0) cache[p.gid] = parsed;
+    }));
+    renderAllProducts();
+    document.getElementById('data-ok').style.display = 'block';
+    document.getElementById('data-err-tag').style.display = 'none';
+  } catch(e) { /* stay on fallback */ }
+}
+
+// ═══ RENDER SINGLE PRODUCT ═══
+function renderSingleProd(prod, data) {
+  const { daily, trends, info } = data;
+  const dailyRows = daily?.data || [];
+  const trendRows = trends?.data || [];
+  const curW = trendRows[trendRows.length-1];
+  const prevW = trendRows[trendRows.length-2];
+
+  // Basic info tag
+  document.getElementById('prod-info-text').textContent =
+    (info['遊戲名稱']||prod.name) + (info['幣別']?' ｜ 幣別：'+info['幣別']:'') + (info['更新日']?' ｜ 更新：'+info['更新日']:'');
+  const seasonEl = document.getElementById('prod-season-tag');
+  const seasonText = info.season || prod.season || '';
+  seasonEl.textContent = seasonText;
+  seasonEl.style.display = seasonText ? 'inline-block' : 'none';
+
+  // Compute KPIs from daily rows
+  const kpis = computeKPIs(dailyRows, curW, prevW, prod);
+  renderKPIs(kpis, prod);
+  renderWoW(kpis);
+  renderSignals(kpis, prod);
+  renderTab1Charts(dailyRows, trendRows, prod);
+  renderDailyTable(dailyRows);
+  renderTrendTable(trendRows);
+  renderTab2Charts(dailyRows, prod);
+  renderTab3Charts(trendRows, prod);
+
+  // Analysis texts
+  const fb = FALLBACK_DB[prod.gid] || FALLBACK_DB['731050234'];
+  document.getElementById('active-analysis-text').textContent = fb.activeAnalysis || '';
+  document.getElementById('biz-analysis-text').textContent   = fb.bizAnalysis   || '';
+}
+
+function computeKPIs(daily, curW, prevW, prod) {
+  if (daily.length === 0) return null;
+
+  const num = s => parseFloat(String(s||0).replace(/[,%]/g,''))||0;
+  const cf = (r, col) => fCell(r?.[col]);
+  const cv = (r, col) => num(cf(r, col));
+  // 每產品欄位對應（逆水寒日報多一欄「雙平台下載」，各指標欄位不同）
+  const dc = prod.cols || {dau:2, newAcc:3, payers:4, rev:6, arpu:7, arppu:8};
+
+  // From daily rows: avg DAU, total revenue, avg ARPU, avg ARPPU, new accounts sum
+  const avgDAU   = avg(daily.map(r=>cv(r,dc.dau)));
+  const totalRev = daily.reduce((s,r)=>s+cv(r,dc.rev),0);
+  const avgARPU  = avg(daily.map(r=>cv(r,dc.arpu)));
+  const avgARPPU = avg(daily.filter(r=>cv(r,dc.arpu)>0).map(r=>cv(r,dc.arppu)));
+  const newAcc   = daily.reduce((s,r)=>s+cv(r,dc.newAcc),0);
+  const avgPayers= avg(daily.map(r=>cv(r,dc.payers)));
+
+  // From trend row (last)
+  const wau      = curW ? cv(curW,2) : 0;
+  const weekdayDAU = curW ? cv(curW,3) : 0;
+  const holidayDAU = curW ? cv(curW,4) : 0;
+  const sticky   = curW ? (cf(curW,5)||'') : '';
+  const payRate  = curW ? (cf(curW,11)||'') : '';
+  const arppu    = curW ? cv(curW,12) : 0;
+  const note     = curW ? cf(curW,9) : '';
+
+  // Previous week for WoW
+  const prevDAU  = prevW ? cv(prevW,1) : 0;
+  const prevWAU  = prevW ? cv(prevW,2) : 0;
+  const prevRev  = prevW ? cv(prevW,6) : 0;
+  const prevNew  = prevW ? cv(prevW,7) : 0;
+
+  return { avgDAU, totalRev, avgARPU, avgARPPU, newAcc, avgPayers,
+    wau, weekdayDAU, holidayDAU, sticky, payRate, arppu, note,
+    prevDAU, prevWAU, prevRev, prevNew, prod };
+}
+
+function avg(arr) {
+  const valid = arr.filter(x=>x>0);
+  return valid.length ? valid.reduce((a,b)=>a+b,0)/valid.length : 0;
+}
+
+function renderKPIs(k, prod) {
+  if (!k) { document.getElementById('kpi-grid').innerHTML = '<div style="color:var(--text-muted);font-size:13px">無法取得 KPI 資料</div>'; return; }
+  const c = prod.color;
+  const kpis = [
+    {l:'週均 DAU',  v: fN(k.avgDAU),             wow: pct(k.avgDAU, k.prevDAU), c},
+    {l:'WAU',       v: fN(k.wau),                 wow: pct(k.wau, k.prevWAU), c: '#10b981'},
+    {l:'周流水',    v: fN(k.totalRev),            wow: pct(k.totalRev, k.prevRev), c: '#f59e0b'},
+    {l:'新增帳號',  v: fN(k.newAcc),              wow: pct(k.newAcc, k.prevNew), c: '#7c3aed'},
+    {l:'日均付費人數', v: fN(Math.round(k.avgPayers)), wow: null, c},
+    {l:'ARPU',      v: k.avgARPU.toFixed(2),      wow: null, c: '#10b981'},
+    {l:'ARPPU',     v: k.avgARPPU.toFixed(2),     wow: null, c: '#f59e0b'},
+    {l:'平日 DAU',  v: fN(k.weekdayDAU),          wow: null, c},
+    {l:'假日 DAU',  v: fN(k.holidayDAU),          wow: null, c: '#10b981'},
+    {l:'黏著度',    v: k.sticky||'—',             wow: null, c: '#7c3aed'},
+    {l:'課金率(週)',v: k.payRate||'—',            wow: null, c: '#f59e0b'},
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(item => {
+    const w = item.wow;
+    const badge = w ? `<div class="kpi-wow ${w.up?'up':w.flat?'fl':'dn'}">${w.up?'▲':w.flat?'─':'▼'} ${w.text} WoW</div>` : '';
+    return `<div class="kpi-card"><div class="kpi-label">${item.l}</div><div class="kpi-val" style="color:${item.c}">${item.v}</div>${badge}</div>`;
+  }).join('');
+}
+
+function renderWoW(k) {
+  if (!k) { document.getElementById('wow-grid').innerHTML=''; return; }
+  const items = [
+    {l:'週均DAU', c:fN(k.avgDAU), p:fN(k.prevDAU), w:pct(k.avgDAU,k.prevDAU)},
+    {l:'WAU', c:fN(k.wau), p:fN(k.prevWAU), w:pct(k.wau,k.prevWAU)},
+    {l:'周流水', c:fN(k.totalRev), p:fN(k.prevRev), w:pct(k.totalRev,k.prevRev)},
+    {l:'新增帳號', c:fN(k.newAcc), p:fN(k.prevNew), w:pct(k.newAcc,k.prevNew)},
+    {l:'ARPPU', c:k.avgARPPU.toFixed(2), p:'—', w:null},
+    {l:'黏著度', c:k.sticky||'—', p:'—', w:null},
+  ];
+  document.getElementById('wow-grid').innerHTML = items.map(it=>{
+    const w=it.w;
+    const col = w ? (w.up?'var(--green)':w.flat?'var(--text-muted)':'var(--red)') : 'var(--text-muted)';
+    const chg = w ? `${w.up?'▲':w.flat?'─':'▼'} ${w.text}` : '—';
+    return `<div class="wow-item"><div class="wow-lbl">${it.l}</div><div class="wow-cur">${it.c}</div><div class="wow-prv">上週: ${it.p}</div><div class="wow-chg" style="color:${col}">${chg}</div></div>`;
+  }).join('');
+}
+
+function renderSignals(k, prod) {
+  if (!k) { document.getElementById('signals').innerHTML=''; return; }
+  const sigs = [];
+  const revWow = calcPct(k.totalRev, k.prevRev);
+  const dauWow = calcPct(k.avgDAU, k.prevDAU);
+
+  if (Math.abs(revWow) > 10) sigs.push({t:revWow>0?'g':'r', h:`流水 WoW ${revWow>0?'+':''}${revWow.toFixed(1)}%`, b: revWow>0?'本週流水顯著成長，活動效益佳':'本週流水下滑，需確認活動影響'});
+  if (Math.abs(dauWow) > 3) sigs.push({t:dauWow>0?'g':'y', h:`DAU WoW ${dauWow>0?'+':''}${dauWow.toFixed(1)}%`, b: dauWow>0?'活躍用戶成長，獲客或留存改善':'活躍用戶下滑，關注留存狀況'});
+  if (k.note && k.note !== '–') sigs.push({t:'y', h:'本週事件：'+k.note.slice(0,20), b:'可能影響本週數據表現，請參照每日明細'});
+  if (k.avgARPPU > 0) {
+    const isHighArppu = k.avgARPPU > 100;
+    sigs.push({t:isHighArppu?'g':'fl', h:`ARPPU ${k.avgARPPU.toFixed(2)}`, b: isHighArppu?'付費客單價表現良好':'付費客單價有提升空間'});
+  }
+  if (k.wau > 0 && k.avgDAU > 0) {
+    const s = k.avgDAU/k.wau*100;
+    sigs.push({t:s>40?'g':'y', h:`黏著度 ${s.toFixed(1)}% (DAU/WAU)`, b: s>40?'用戶黏性健康，每日回訪率佳':'黏著度偏低，建議強化每日任務誘因'});
+  }
+  if (sigs.length < 2) sigs.push({t:'g', h:'數據表現穩健', b:`${prod.name} 本週整體 KPI 在正常範圍內波動`});
+  if (sigs.length < 4) sigs.push({t:'y', h:'KOL 合作進行中', b:'本週有 3 位 KOL 合作意向確認，預計下週上線'});
+
+  document.getElementById('signals').innerHTML = sigs.slice(0,6).map(s=>`
+    <div class="sig"><div class="dot ${s.t}"></div><div>
+      <div style="font-size:13px">${s.h}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${s.b}</div>
+    </div></div>`).join('');
+}
+
+// ═══ CHARTS ═══
+function mkChart(id, type, labels, datasets, opts={}) {
+  const ch = charts[id];
+  if (ch) { ch.destroy(); }
+  charts[id] = new Chart(document.getElementById(id), {
+    type, data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:!!opts.legend,labels:{color:'#94a3b8',font:{size:11}}},tooltip:{mode:'index',intersect:false}},
+      scales:{x:{grid:{color:'rgba(45,49,81,.5)'},ticks:{color:'#94a3b8',font:{size:11}}},
+        y:{grid:{color:'rgba(45,49,81,.5)'},ticks:{color:'#94a3b8',font:{size:11}}},
+        ...opts.scales},
+      ...opts.extra}
+  });
+}
+
+function renderTab1Charts(daily, trend, prod) {
+  const c = prod.color;
+  const dc = prod.cols || {dau:2, rev:6, arppu:8};
+  const labels = daily.map(r=>fCell(r[0]));
+  const dau = daily.map(r=>num(fCell(r[dc.dau])));
+  const rev = daily.map(r=>num(fCell(r[dc.rev]))/10000);
+
+  mkChart('c-dau7','line',labels,[{data:dau,borderColor:c,backgroundColor:c.replace(/rgb/,'rgba').replace(')',',0.1)'),fill:true,tension:.4,pointRadius:4}]);
+  mkChart('c-rev7','line',labels,[{data:rev,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true,tension:.4,pointRadius:4}]);
+
+  // Active: weekday vs holiday from trend
+  const tLabels = trend.map(r=>fCell(r[0]));
+  const wd = trend.map(r=>num(fCell(r[3])));
+  const hd = trend.map(r=>num(fCell(r[4])));
+  mkChart('c-active','bar',tLabels,[
+    {label:'平日DAU',data:wd,backgroundColor:'rgba(74,108,247,.7)',stack:'s'},
+    {label:'假日DAU',data:hd,backgroundColor:'rgba(245,158,11,.7)',stack:'s'},
+  ],{legend:true,extra:{scales:{x:{stacked:true},y:{stacked:true,grid:{color:'rgba(45,49,81,.5)'},ticks:{color:'#94a3b8',font:{size:11}}}}}});
+
+  // Commercial: rev bars + arppu line
+  const arppu = daily.map(r=>num(fCell(r[dc.arppu])));
+  mkChart('c-comm','bar',labels,[
+    {label:'流水(萬)',data:rev,backgroundColor:'rgba(16,185,129,.7)',yAxisID:'y'},
+    {label:'ARPPU',data:arppu,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',yAxisID:'y1',tension:.4,pointRadius:4},
+  ],{legend:true,scales:{
+    x:{grid:{color:'rgba(45,49,81,.5)'},ticks:{color:'#94a3b8',font:{size:11}}},
+    y:{grid:{color:'rgba(45,49,81,.5)'},ticks:{color:'#94a3b8',font:{size:11}},position:'left'},
+    y1:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}},position:'right'}
+  }});
+}
+
+function renderTab2Charts(daily, prod) {
+  const c = prod.color;
+  const dc = prod.cols || {dau:2, rev:6, arpu:7, arppu:8};
+  const labels = daily.map(r=>fCell(r[0]));
+  mkChart('c-d-dau','line',labels,[{data:daily.map(r=>num(fCell(r[dc.dau]))),borderColor:c,backgroundColor:c.replace(/rgb/,'rgba').replace(')',',0.1)'),fill:true,tension:.4,pointRadius:5}]);
+  mkChart('c-d-rev','bar',labels,[{data:daily.map(r=>num(fCell(r[dc.rev]))/10000),backgroundColor:'rgba(16,185,129,.7)',borderRadius:3}]);
+  mkChart('c-d-arpu','line',labels,[
+    {label:'ARPU',data:daily.map(r=>num(fCell(r[dc.arpu]))),borderColor:'#4a6cf7',tension:.4,pointRadius:4},
+    {label:'ARPPU',data:daily.map(r=>num(fCell(r[dc.arppu]))),borderColor:'#f59e0b',tension:.4,pointRadius:4},
+  ],{legend:true});
+}
+
+function renderTab3Charts(trend, prod) {
+  const c = prod.color;
+  const labels = trend.map(r=>fCell(r[0]));
+  const mkW = (id,data,color) => mkChart(id,'line',labels,[{data,borderColor:color,backgroundColor:color.replace(/rgb/,'rgba').replace(')',',0.1)'),fill:true,tension:.4,pointRadius:4}]);
+  mkW('c-w-dau', trend.map(r=>num(fCell(r[1]))), c);
+  mkW('c-w-rev', trend.map(r=>num(fCell(r[6]))/10000), '#10b981');
+  mkW('c-w-wau', trend.map(r=>num(fCell(r[2]))), '#f59e0b');
+  mkW('c-w-sticky', trend.map(r=>parseFloat(fCell(r[5])||0)), '#7c3aed');
+  mkW('c-w-new', trend.map(r=>num(fCell(r[7]))), '#ef4444');
+  mkW('c-w-pay', trend.map(r=>parseFloat(fCell(r[11])||0)), '#14b8a6');
+}
+
+// ═══ TABLES ═══
+function renderDailyTable(daily) {
+  document.getElementById('daily-tbody').innerHTML = daily.map(r=>`<tr>
+    ${r.slice(0,14).map((c,i)=>
+      `<td>${i===13&&fCell(c)&&fCell(c)!=='–'?`<span class="tag">${fCell(c)}</span>`:fCell(c)||'—'}</td>`
+    ).join('')}
+  </tr>`).join('');
+}
+
+function renderTrendTable(trend) {
+  document.getElementById('trend-tbody').innerHTML = trend.map((r,i)=>{
+    const pr = trend[i-1];
+    const isLast = i===trend.length-1;
+    const wc=(ci,pi)=>{
+      const c=num(fCell(r[ci])), p=pr?num(fCell(pr[pi])):0;
+      if(!p||!c) return '<td style="color:var(--text-muted)">—</td>';
+      const w=pct(c,p);
+      return `<td style="color:${w.up?'var(--green)':w.flat?'var(--text-muted)':'var(--red)'}">${w.up?'▲':'▼'} ${w.text}</td>`;
+    };
+    const rowStyle = isLast?'font-weight:600;background:rgba(74,108,247,.06)':'';
+    return `<tr style="${rowStyle}">
+      <td>${fCell(r[0])}${isLast?' <span class="tag">本週</span>':''}</td>
+      <td>${fCell(r[1])}</td>${wc(1,1)}
+      <td>${fCell(r[2])}</td>${wc(2,2)}
+      <td>${fCell(r[5])||'—'}</td>
+      <td>${fCell(r[6])}</td>${wc(6,6)}
+      <td>${fCell(r[11])||'—'}</td>${wc(11,11)}
+      <td>${fCell(r[7])}</td>
+      <td>${fCell(r[12])}</td>
+      <td style="color:var(--text-muted);font-size:11px">${fCell(r[9])||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══ ALL PRODUCTS ═══
+function renderAllProducts() {
+  const allpGrid = document.getElementById('allp-grid');
+  const allpTbody = document.getElementById('allp-tbody');
+
+  allpGrid.innerHTML = PRODUCTS.map(prod=>{
+    const d = cache[prod.gid];
+    if (!d) return `<div class="allp-card"><div class="allp-prod"><div class="allp-dot" style="background:${prod.color}"></div>${prod.name}</div><div style="color:var(--text-muted);font-size:13px">載入失敗</div></div>`;
+    const k = computeKPIs(d.daily?.data||[], d.trends?.data?.[d.trends.data.length-1], d.trends?.data?.[d.trends.data.length-2], prod);
+    if (!k) return '';
+    return `<div class="allp-card">
+      <div class="allp-prod"><div class="allp-dot" style="background:${prod.color}"></div>${prod.name}</div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);gap:9px">
+        ${[
+          {l:'週均DAU',v:fN(k.avgDAU),w:pct(k.avgDAU,k.prevDAU)},
+          {l:'WAU',v:fN(k.wau),w:pct(k.wau,k.prevWAU)},
+          {l:'周流水',v:fN(k.totalRev),w:pct(k.totalRev,k.prevRev)},
+          {l:'新增帳號',v:fN(k.newAcc),w:pct(k.newAcc,k.prevNew)},
+        ].map(item=>{
+          const w=item.w;
+          const badge=w?`<div class="kpi-wow ${w.up?'up':w.flat?'fl':'dn'}" style="font-size:10px">${w.up?'▲':'▼'} ${w.text}</div>`:'';
+          return `<div class="kpi-card" style="padding:12px"><div class="kpi-label">${item.l}</div><div class="kpi-val" style="font-size:18px;color:${prod.color}">${item.v}</div>${badge}</div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  allpTbody.innerHTML = PRODUCTS.map(prod=>{
+    const d = cache[prod.gid];
+    if (!d) return `<tr><td>${prod.name}</td><td colspan="9" style="color:var(--text-muted)">載入失敗</td></tr>`;
+    const k = computeKPIs(d.daily?.data||[], d.trends?.data?.[d.trends.data.length-1], d.trends?.data?.[d.trends.data.length-2], prod);
+    if (!k) return '';
+    const wc=(c,p)=>{const w=pct(c,p);return `<td style="color:${w.up?'var(--green)':w.flat?'var(--text-muted)':'var(--red)'}">${w.up?'▲':'▼'} ${w.text}</td>`;};
+    return `<tr>
+      <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${prod.color};display:inline-block"></span>${prod.name}</span></td>
+      <td>${fN(k.avgDAU)}</td>${wc(k.avgDAU,k.prevDAU)}
+      <td>${fN(k.wau)}</td>${wc(k.wau,k.prevWAU)}
+      <td>${fN(k.totalRev)}</td>${wc(k.totalRev,k.prevRev)}
+      <td>${k.payRate||'—'}</td>
+      <td>${fN(k.newAcc)}</td>
+      <td>${k.avgARPPU.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  renderAllProductsAnalysis();
+}
+
+// ═══ FALLBACK (per-product real data) ═══
+const FALLBACK_DB = {
+  '731050234': { // 蛋仔派對
+    season:'30賽季W5', currency:'TWD', updated:'2026-06-08',
+    activeAnalysis:'本週為賽季末階段，同時也是大型版本更新前的過渡週，遊戲內未推出新的玩法、活動或福利內容，整體缺乏明顯的活躍拉升動能。\n\n不過，隨著部分學生族群陸續進入畢業季，課業與考試壓力逐漸解除，可支配時間有所增加，對活躍表現形成一定支撐效果，部分抵消了版本空窗期所帶來的影響。\n\n綜合來看，在缺乏內容更新的情況下，本週活躍表現仍維持穩定，DAU、WAU 等核心指標與上週基本持平，未出現明顯波動。',
+    bizAnalysis:'6/12 同頻版本更新後將推出多項新商品與商業化內容，部分玩家提前進行儲值準備。此外，部分現行優惠禮包於合版後將不再販售，也帶動玩家提前購買相關商品。\n\n受上述因素影響，雖然本週缺乏新品帶動消耗，但儲值需求仍維持一定熱度，使整體流水在無新商業化項目的情況下仍呈現逆勢成長，展現玩家對後續版本內容的期待與提前消費意願。',
+    daily:[
+      [{f:'06-01'},{f:'一'},{f:'69,582'},{f:'823'},{f:'1,547'},{f:'2.2%'},{f:'195,780'},{f:'2.81'},{f:'126.55'},{f:'40.6%'},{f:'3,514'},{f:'13,893'},{f:'71.8'},{f:'–'}],
+      [{f:'06-02'},{f:'二'},{f:'69,758'},{f:'987'},{f:'1,359'},{f:'1.9%'},{f:'166,142'},{f:'2.38'},{f:'122.25'},{f:'40.8%'},{f:'3,469'},{f:'13,949'},{f:'70.4'},{f:'–'}],
+      [{f:'06-03'},{f:'三'},{f:'74,073'},{f:'1,205'},{f:'1,426'},{f:'1.9%'},{f:'167,547'},{f:'2.26'},{f:'117.49'},{f:'36.5%'},{f:'3,850'},{f:'14,069'},{f:'73.8'},{f:'–'}],
+      [{f:'06-04'},{f:'四'},{f:'68,866'},{f:'1,040'},{f:'1,246'},{f:'1.8%'},{f:'140,207'},{f:'2.04'},{f:'112.53'},{f:'42.9%'},{f:'3,480'},{f:'13,804'},{f:'72.2'},{f:'–'}],
+      [{f:'06-05'},{f:'五'},{f:'88,961'},{f:'1,435'},{f:'1,708'},{f:'1.9%'},{f:'188,159'},{f:'2.12'},{f:'110.16'},{f:'46.8%'},{f:'4,889'},{f:'18,791'},{f:'77.3'},{f:'–'}],
+      [{f:'06-06'},{f:'六'},{f:'125,378'},{f:'2,891'},{f:'2,391'},{f:'1.9%'},{f:'310,229'},{f:'2.47'},{f:'129.75'},{f:'43.0%'},{f:'9,759'},{f:'18,951'},{f:'111.5'},{f:'–'}],
+      [{f:'06-07'},{f:'日'},{f:'123,324'},{f:'2,649'},{f:'2,315'},{f:'1.9%'},{f:'272,487'},{f:'2.21'},{f:'117.70'},{f:'–'},{f:'9,754'},{f:'18,037'},{f:'115.7'},{f:'賽季末'}],
+    ],
+    trend:[
+      [{f:'03-30'},{f:'105,353'},{f:'238,060'},{f:'91,896'},{f:'138,993'},{f:'44.3%'},{f:'2,229,702'},{f:'14,296'},{f:'–'},{f:'兒童節連假'},{f:'20,759'},{f:'8.7%'},{f:'107.41'}],
+      [{f:'04-06'},{f:'100,622'},{f:'229,351'},{f:'90,570'},{f:'125,749'},{f:'43.9%'},{f:'1,461,596'},{f:'12,870'},{f:'0.8329'},{f:'–'},{f:'12,586'},{f:'5.5%'},{f:'116.13'}],
+      [{f:'04-13'},{f:'88,637'},{f:'208,703'},{f:'71,952'},{f:'130,350'},{f:'42.5%'},{f:'1,655,689'},{f:'10,655'},{f:'0.7750'},{f:'國小生考試'},{f:'13,268'},{f:'6.4%'},{f:'124.79'}],
+      [{f:'04-20'},{f:'88,252'},{f:'205,447'},{f:'73,276'},{f:'125,692'},{f:'43.0%'},{f:'1,273,438'},{f:'10,114'},{f:'0.8816'},{f:'–'},{f:'10,072'},{f:'4.9%'},{f:'126.43'}],
+      [{f:'04-27'},{f:'97,978'},{f:'220,531'},{f:'73,058'},{f:'131,204'},{f:'44.4%'},{f:'1,572,086'},{f:'11,242'},{f:'0.9828'},{f:'–'},{f:'11,477'},{f:'5.2%'},{f:'136.98'}],
+      [{f:'05-04'},{f:'88,836'},{f:'199,151'},{f:'74,695'},{f:'124,187'},{f:'44.6%'},{f:'1,223,986'},{f:'9,483'},{f:'0.8099'},{f:'競品更新'},{f:'8,719'},{f:'4.4%'},{f:'140.38'}],
+      [{f:'05-11'},{f:'87,584'},{f:'201,457'},{f:'72,391'},{f:'125,568'},{f:'43.5%'},{f:'1,063,130'},{f:'10,261'},{f:'0.8704'},{f:'考試結束'},{f:'7,585'},{f:'3.8%'},{f:'140.16'}],
+      [{f:'05-18'},{f:'89,171'},{f:'206,240'},{f:'73,504'},{f:'128,337'},{f:'43.2%'},{f:'1,833,961'},{f:'11,082'},{f:'0.8916'},{f:'皮蛋節'},{f:'13,008'},{f:'6.3%'},{f:'140.99'}],
+      [{f:'05-25'},{f:'88,949'},{f:'204,605'},{f:'74,730'},{f:'124,495'},{f:'43.5%'},{f:'1,412,179'},{f:'10,526'},{f:'0.8795'},{f:'–'},{f:'9,690'},{f:'4.7%'},{f:'145.74'}],
+      [{f:'06-01'},{f:'88,563'},{f:'204,971'},{f:'74,248'},{f:'124,351'},{f:'43.2%'},{f:'1,440,551'},{f:'11,030'},{f:'0.8717'},{f:'賽季末'},{f:'8,902'},{f:'4.3%'},{f:'161.82'}],
+    ]
+  },
+  '1765419': { // 逆水寒 — cols:{dau:4,newAcc:3,payers:7,rev:9,arpu:5,arppu:6}
+    season:'2.2.3賽季第2週', currency:'RMB', updated:'2026-06-08',
+    activeAnalysis:'上週最高點為周一的 31,854，之後一路下滑，最低點為 6/5 的 29,469（五），周末回升至 3 萬以上。\n\n本次改版主要僅有新地圖，雖然 6/5 有開啟團本最終王英雄難度，對人數拉抬幫助有限。巴拉拉小魔仙簽到活動最後一天為 6/3（三），隔天周四明顯下滑。上週工作室有嘗試鑽漏洞（小額儲值規避封號），新增帳號稍微回升，原廠持續處理中，真實玩家推估在 2 萬 9 上下。\n\n本周末有幫會聯賽、比武大會、領地戰三個 PVP 玩法，預計假日 DAU 會提升。回流下滑 5.98%，為改版進入第二周正常表現。',
+    bizAnalysis:'上週營收 WoW -35.68%，主因：僅上架一套新的低價時裝，巴拉拉小魔仙連動相關進入第二周。\n\na. 新時裝銷售額約 1.2 萬，小魔仙聯動相關禮盒約 10 萬銷售額\nb. 鑑石神鑿相關約 237 萬人民幣，為本週主要營收貢獻，與前周相比下滑 36%，導致整體營收下滑',
+    daily:[
+      [{f:'06-01'},{f:'一'},{f:'3,324'},{f:'1,486'},{f:'31,854'},{f:'31.74'},{f:'236.69'},{f:'4,272'},{f:'13.41%'},{f:'1,011,152'},{f:'146,249'},{f:'82,502'},{f:'347'},{f:'–'}],
+      [{f:'06-02'},{f:'二'},{f:'1,176'},{f:'536'},{f:'30,832'},{f:'18.15'},{f:'234.99'},{f:'2,381'},{f:'7.72%'},{f:'559,520'},{f:'72,030'},{f:'44,671'},{f:'477'},{f:'–'}],
+      [{f:'06-03'},{f:'三'},{f:'2,992'},{f:'983'},{f:'30,686'},{f:'15.06'},{f:'171.71'},{f:'2,691'},{f:'8.77%'},{f:'462,070'},{f:'61,933'},{f:'43,101'},{f:'303'},{f:'簽到獎勵最後一天'}],
+      [{f:'06-04'},{f:'四'},{f:'399'},{f:'133'},{f:'29,684'},{f:'25.15'},{f:'196.06'},{f:'3,808'},{f:'12.83%'},{f:'746,583'},{f:'140,356'},{f:'86,675'},{f:'328'},{f:'–'}],
+      [{f:'06-05'},{f:'五'},{f:'1,783'},{f:'140'},{f:'29,469'},{f:'25.97'},{f:'484.91'},{f:'1,578'},{f:'5.35%'},{f:'765,186'},{f:'87,109'},{f:'63,811'},{f:'331'},{f:'開放英雄難度最終王'}],
+      [{f:'06-06'},{f:'六'},{f:'120'},{f:'314'},{f:'30,173'},{f:'18.12'},{f:'414.10'},{f:'1,320'},{f:'4.37%'},{f:'546,616'},{f:'61,270'},{f:'68,041'},{f:'412'},{f:'–'}],
+      [{f:'06-07'},{f:'日'},{f:'0'},{f:'1,093'},{f:'30,129'},{f:'14.87'},{f:'349.81'},{f:'1,281'},{f:'4.25%'},{f:'448,106'},{f:'66,982'},{f:'52,937'},{f:'364'},{f:'–'}],
+    ],
+    trend:[
+      [{f:'03-30'},{f:'33,955'},{f:'54,714'},{f:'33,619'},{f:'34,793'},{f:'61.4%'},{f:'6,062,009'},{f:'12,511'},{f:'–'},{f:'–'},{f:'10,648'},{f:'19.5%'},{f:'569'}],
+      [{f:'04-06'},{f:'35,969'},{f:'63,899'},{f:'35,846'},{f:'36,276'},{f:'56.1%'},{f:'4,992,561'},{f:'21,626'},{f:'0.4224'},{f:'–'},{f:'10,038'},{f:'15.7%'},{f:'497'}],
+      [{f:'04-13'},{f:'35,899'},{f:'65,676'},{f:'35,951'},{f:'35,769'},{f:'54.7%'},{f:'5,241,913'},{f:'23,335'},{f:'0.3493'},{f:'–'},{f:'10,006'},{f:'15.2%'},{f:'524'}],
+      [{f:'04-20'},{f:'35,754'},{f:'67,043'},{f:'35,489'},{f:'36,417'},{f:'52.9%'},{f:'9,487,097'},{f:'25,676'},{f:'0.2807'},{f:'2.2.2改版'},{f:'10,945'},{f:'16.3%'},{f:'867'}],
+      [{f:'04-27'},{f:'34,923'},{f:'63,304'},{f:'35,155'},{f:'34,341'},{f:'55.5%'},{f:'5,646,453'},{f:'24,589'},{f:'0.2890'},{f:'–'},{f:'9,148'},{f:'14.5%'},{f:'617'}],
+      [{f:'05-04'},{f:'31,298'},{f:'45,665'},{f:'30,722'},{f:'32,738'},{f:'67.3%'},{f:'6,117,064'},{f:'3,828'},{f:'0.7866'},{f:'清理工作室'},{f:'8,832'},{f:'19.3%'},{f:'693'}],
+      [{f:'05-11'},{f:'31,647'},{f:'50,953'},{f:'31,210'},{f:'32,738'},{f:'61.3%'},{f:'3,989,541'},{f:'8,119'},{f:'0.7517'},{f:'–'},{f:'8,270'},{f:'16.2%'},{f:'482'}],
+      [{f:'05-18'},{f:'31,521'},{f:'44,644'},{f:'31,394'},{f:'31,839'},{f:'70.3%'},{f:'5,194,162'},{f:'3,725'},{f:'0.8783'},{f:'–'},{f:'8,744'},{f:'19.6%'},{f:'594'}],
+      [{f:'05-25'},{f:'32,156'},{f:'44,255'},{f:'31,907'},{f:'32,779'},{f:'72.1%'},{f:'7,057,256'},{f:'3,167'},{f:'0.9197'},{f:'2.2.3改版'},{f:'12,552'},{f:'28.4%'},{f:'562'}],
+      [{f:'06-01'},{f:'30,404'},{f:'43,921'},{f:'30,505'},{f:'30,151'},{f:'69.5%'},{f:'4,539,233'},{f:'4,685'},{f:'0.7998'},{f:'–'},{f:'10,978'},{f:'25.0%'},{f:'413'}],
+    ]
+  },
+  '1928310003': { // 哈利波特 — 欄位同蛋仔派對
+    season:'20賽季第2週', currency:'RMB', updated:'2026-06-11',
+    activeAnalysis:'本周無特殊活動更新，主要以前周維護更新項目效果遞延，加上例行活動循環復開為主，活躍人數基本持平。',
+    bizAnalysis:'6/1 例行上新通行證＆月卡重置，搭配國際兒童節禮包促進消費意願，帶動周付費率提升（5.7%→12.8%，+125%），周 ARPPU 也有相應小幅提升（182→210，+15%），流水較前周有明顯成長。\n\n本月主力內容將於 6/21 開啟全球 3 周年商業活動，包含傳說品質時裝、魔咒心力直升道具及萬能卡牌抽獎。',
+    daily:[
+      [{f:'06-01'},{f:'一'},{f:'8,171'},{f:'55'},{f:'846'},{f:'10.4%'},{f:'159,928'},{f:'19.57'},{f:'189.04'},{f:'27.3%'},{f:'502'},{f:'1,134'},{f:'83.5'},{f:'–'}],
+      [{f:'06-02'},{f:'二'},{f:'7,999'},{f:'73'},{f:'262'},{f:'3.3%'},{f:'53,023'},{f:'6.63'},{f:'202.38'},{f:'30.1%'},{f:'439'},{f:'981'},{f:'76.7'},{f:'–'}],
+      [{f:'06-03'},{f:'三'},{f:'8,014'},{f:'72'},{f:'197'},{f:'2.5%'},{f:'29,229'},{f:'3.65'},{f:'148.37'},{f:'27.8%'},{f:'435'},{f:'968'},{f:'75.8'},{f:'–'}],
+      [{f:'06-04'},{f:'四'},{f:'7,896'},{f:'60'},{f:'125'},{f:'1.6%'},{f:'15,860'},{f:'2.01'},{f:'126.88'},{f:'23.3%'},{f:'420'},{f:'915'},{f:'73.8'},{f:'–'}],
+      [{f:'06-05'},{f:'五'},{f:'8,088'},{f:'82'},{f:'144'},{f:'1.8%'},{f:'22,275'},{f:'2.75'},{f:'154.69'},{f:'36.6%'},{f:'427'},{f:'921'},{f:'72.3'},{f:'–'}],
+      [{f:'06-06'},{f:'六'},{f:'8,315'},{f:'112'},{f:'161'},{f:'1.9%'},{f:'27,784'},{f:'3.34'},{f:'172.57'},{f:'28.6%'},{f:'503'},{f:'959'},{f:'84.2'},{f:'–'}],
+      [{f:'06-07'},{f:'日'},{f:'8,493'},{f:'109'},{f:'163'},{f:'1.9%'},{f:'25,721'},{f:'3.03'},{f:'157.80'},{f:'16.5%'},{f:'544'},{f:'1,039'},{f:'87.5'},{f:'–'}],
+    ],
+    trend:[
+      [{f:'03-30'},{f:'8,426'},{f:'13,234'},{f:'8,293'},{f:'8,604'},{f:'63.7%'},{f:'714,551'},{f:'705'},{f:'–'},{f:'–'},{f:'1,617'},{f:'12.2%'},{f:'441.90'}],
+      [{f:'04-06'},{f:'8,343'},{f:'12,865'},{f:'8,250'},{f:'8,576'},{f:'64.9%'},{f:'270,059'},{f:'639'},{f:'0.9143'},{f:'–'},{f:'1,019'},{f:'7.9%'},{f:'265.02'}],
+      [{f:'04-13'},{f:'8,281'},{f:'12,637'},{f:'8,145'},{f:'8,622'},{f:'65.5%'},{f:'145,171'},{f:'474'},{f:'0.9358'},{f:'–'},{f:'704'},{f:'5.6%'},{f:'206.21'}],
+      [{f:'04-20'},{f:'8,255'},{f:'12,443'},{f:'8,095'},{f:'8,655'},{f:'66.3%'},{f:'79,861'},{f:'472'},{f:'0.9399'},{f:'–'},{f:'566'},{f:'4.5%'},{f:'141.10'}],
+      [{f:'04-27'},{f:'8,568'},{f:'13,088'},{f:'8,425'},{f:'8,927'},{f:'65.5%'},{f:'598,553'},{f:'649'},{f:'0.9593'},{f:'–'},{f:'1,635'},{f:'12.5%'},{f:'366.09'}],
+      [{f:'05-04'},{f:'8,478'},{f:'12,745'},{f:'8,408'},{f:'8,655'},{f:'66.5%'},{f:'359,701'},{f:'553'},{f:'0.9250'},{f:'–'},{f:'1,164'},{f:'9.1%'},{f:'309.02'}],
+      [{f:'05-11'},{f:'8,395'},{f:'12,933'},{f:'8,314'},{f:'8,596'},{f:'64.9%'},{f:'226,762'},{f:'608'},{f:'0.9185'},{f:'–'},{f:'947'},{f:'7.3%'},{f:'239.45'}],
+      [{f:'05-18'},{f:'8,254'},{f:'12,876'},{f:'8,196'},{f:'8,401'},{f:'64.1%'},{f:'186,601'},{f:'592'},{f:'0.9127'},{f:'–'},{f:'912'},{f:'7.1%'},{f:'204.61'}],
+      [{f:'05-25'},{f:'8,137'},{f:'12,537'},{f:'8,018'},{f:'8,434'},{f:'64.9%'},{f:'129,418'},{f:'531'},{f:'0.9215'},{f:'–'},{f:'713'},{f:'5.7%'},{f:'181.51'}],
+      [{f:'06-01'},{f:'8,139'},{f:'12,469'},{f:'8,034'},{f:'8,404'},{f:'65.3%'},{f:'333,819'},{f:'563'},{f:'0.9311'},{f:'–'},{f:'1,593'},{f:'12.8%'},{f:'209.55'}],
+    ]
+  }
+};
+
+function renderFallback(prod) {
+  const fb = FALLBACK_DB[prod.gid] || FALLBACK_DB['731050234'];
+  cache[prod.gid] = {
+    daily:  {data: fb.daily},
+    trends: {data: fb.trend},
+    info:   {'遊戲名稱':prod.name, '幣別':fb.currency, '更新日':fb.updated, season:fb.season}
+  };
+  renderSingleProd(prod, cache[prod.gid]);
+}
+
+function switchAnalysisTab(idx) {
+  document.querySelectorAll('.a-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+}
+
+function renderAllProductsAnalysis() {
+  const grid = document.getElementById('allp-analysis-grid');
+  if (!grid) return;
+  grid.innerHTML = PRODUCTS.map(prod => {
+    const fb = FALLBACK_DB[prod.gid];
+    if (!fb) return '';
+    return `<div class="allp-analysis-card">
+      <div class="ah"><span style="width:10px;height:10px;border-radius:50%;background:${prod.color};display:inline-block"></span>${prod.name} <span style="font-size:12px;font-weight:400;color:var(--text-muted)">${fb.season}</span></div>
+      <div class="at">活躍分析</div>
+      <p>${(fb.activeAnalysis||'').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</p>
+      <div class="at" style="margin-top:10px">商業化分析</div>
+      <p>${(fb.bizAnalysis||'').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</p>
+    </div>`;
+  }).join('');
+}
+
+// ═══ MEMBER MANAGEMENT ═══
+function renderMemberMgmt() {
+  const list = document.getElementById('mbr-list');
+  if (!list) return;
+  list.innerHTML = members.map((m,i) => `
+    <div class="mbr-chip">
+      <span class="mbr-ava" style="background:${m.bg};color:${m.color}">${m.name[0]}</span>
+      <span style="font-weight:600">${m.name}</span>
+      ${m.role ? `<span style="color:var(--text-muted)">${m.role}</span>` : ''}
+      <button class="mbr-del" onclick="delMember(${i})" title="刪除 ${m.name}">✕</button>
+    </div>`).join('');
+  // Sync dropdown
+  const sel = document.getElementById('t-person');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">選擇負責人</option>' +
+    members.map(m => `<option ${m.name===prev?'selected':''}>${m.name}</option>`).join('');
+}
+
+function addMember() {
+  const name = document.getElementById('mbr-name').value.trim();
+  if (!name) { document.getElementById('mbr-name').focus(); return; }
+  if (members.find(m => m.name === name)) { alert(`「${name}」已存在`); return; }
+  const palette = MEMBER_COLORS[members.length % MEMBER_COLORS.length];
+  const role = document.getElementById('mbr-role').value.trim();
+  members.push({ name, role, ...palette });
+  document.getElementById('mbr-name').value = '';
+  document.getElementById('mbr-role').value = '';
+  renderMemberMgmt();
+  renderPersonFilters();
+  renderPersonStats();
+}
+
+function delMember(idx) {
+  const m = members[idx];
+  if (!m) return;
+  const hasTodos = todos.some(t => t.person === m.name);
+  if (hasTodos && !confirm(`「${m.name}」有待辦事項，刪除後仍保留待辦但不顯示於成員卡片。確定繼續？`)) return;
+  if (!hasTodos && !confirm(`確定刪除「${m.name}」？`)) return;
+  members.splice(idx, 1);
+  if (personFilter === m.name) personFilter = '';
+  renderMemberMgmt();
+  renderPersonFilters();
+  renderPersonStats();
+  renderTodos();
+}
+
+// ═══ TODOS ═══
+function renderPersonFilters() {
+  document.getElementById('pf-row').innerHTML =
+    `<div class="pf-btn ${!personFilter?'active':''}" onclick="setPF('')">全部</div>` +
+    members.map(m=>`<div class="pf-btn ${personFilter===m.name?'active':''}" onclick="setPF('${m.name}')">${m.name}</div>`).join('');
+}
+function setPF(name) {
+  personFilter=name;
+  renderPersonFilters();
+  renderTodos();
+  document.getElementById('todo-title').textContent = name?name+' 的待辦':'全部待辦';
+}
+function renderPersonStats() {
+  document.getElementById('p-stats-row').innerHTML='<div class="p-stats">'+
+    members.map(m=>{
+      const mt=todos.filter(t=>t.person===m.name);
+      const done=mt.filter(t=>t.status==='已完成').length;
+      const late=mt.filter(t=>t.status==='延遲').length;
+      const rate=mt.length?Math.round(done/mt.length*100):0;
+      return `<div class="p-card" onclick="setPF('${m.name}')">
+        <div class="p-ava" style="background:${m.bg};color:${m.color}">${m.name[0]}</div>
+        <div class="p-name">${m.name}</div><div class="p-role">${m.role}</div>
+        <div class="p-pt"><span>完成 ${done}/${mt.length}</span><span style="color:${late?'var(--red)':'var(--text-muted)'}">${late?late+'項延遲':rate+'%'}</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${rate}%;background:${m.color}"></div></div>
+      </div>`;
+    }).join('')+'</div>';
+}
+function renderTodos() {
+  const sf=document.getElementById('f-status')?.value||'';
+  const pf=document.getElementById('f-pri')?.value||'';
+  const list=todos.filter(t=>(!personFilter||t.person===personFilter)&&(!sf||t.status===sf)&&(!pf||t.pri===pf));
+  document.getElementById('todo-cnt').textContent=`共 ${list.length} 項`;
+  const sCls={'待開始':'s-todo','進行中':'s-wip','審核中':'s-rev','已完成':'s-done','延遲':'s-late'};
+  const pCls={'高':'p-hi','中':'p-md','低':'p-lo'};
+  document.getElementById('todo-tbody').innerHTML=list.map((t,i)=>{
+    const m=members.find(x=>x.name===t.person)||{color:'#94a3b8',bg:'rgba(148,163,184,0.2)'};
+    const pc=t.progress>=100?'var(--green)':t.status==='延遲'?'var(--red)':'var(--accent)';
+    const over=isOverdue(t.due,t.status);
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:11px">${i+1}</td>
+      <td><input class="ie" value="${t.task}" style="width:100%;min-width:170px" onchange="updTodo(${t.id},'task',this.value)"></td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:20px;height:20px;border-radius:50%;background:${m.bg};color:${m.color};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${t.person[0]}</span>${t.person}</span></td>
+      <td style="color:var(--text-muted);font-size:11px">${t.source}</td>
+      <td style="${over?'color:var(--red);font-weight:600':''}">${t.due||'—'}</td>
+      <td><span class="${pCls[t.pri]}">${t.pri}</span></td>
+      <td><select class="fs" style="width:84px;padding:3px 5px;font-size:11px" onchange="updTodo(${t.id},'status',this.value)">
+        ${['待開始','進行中','審核中','已完成','延遲'].map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td><div style="display:flex;align-items:center;gap:5px">
+        <div class="prog-bar" style="flex:1;min-width:50px"><div class="prog-fill" style="width:${t.progress}%;background:${pc}"></div></div>
+        <input type="number" min="0" max="100" value="${t.progress}" style="width:36px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:11px;padding:1px 3px;text-align:center" onchange="updTodo(${t.id},'progress',Math.min(100,Math.max(0,parseInt(this.value)||0)))">
+        <span style="font-size:10px;color:var(--text-muted)">%</span>
+      </div></td>
+      <td><input class="ie" value="${t.note||''}" placeholder="備註..." style="width:100%;min-width:70px;font-size:11px" onchange="updTodo(${t.id},'note',this.value)"></td>
+      <td><button class="btn-ic btn-del" onclick="delTodo(${t.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+function isOverdue(due,status){if(!due||status==='已完成')return false;return new Date(due.replace(/\//g,'-'))<new Date();}
+function addTodo(){
+  const task=document.getElementById('t-task').value.trim();
+  const person=document.getElementById('t-person').value;
+  if(!task||!person){alert('請填寫任務名稱與負責人');return;}
+  todos.unshift({id:nextTodoId++,task,person,source:'手動新增',
+    due:document.getElementById('t-due').value.replace(/-/g,'/')||'',
+    pri:document.getElementById('t-pri').value,status:'待開始',progress:0,note:''});
+  document.getElementById('t-task').value='';document.getElementById('t-person').value='';document.getElementById('t-due').value='';
+  renderTodos();renderPersonStats();
+}
+function updTodo(id,field,value){
+  const t=todos.find(x=>x.id===id);if(!t)return;
+  t[field]=field==='progress'?parseInt(value):value;
+  if(['status','progress'].includes(field)){renderPersonStats();renderTodos();}
+}
+function delTodo(id){if(!confirm('確定刪除？'))return;todos=todos.filter(t=>t.id!==id);renderTodos();renderPersonStats();}
+
+// ═══ MEETINGS ═══
+function renderMeetings() {
+  const sCls={'待開始':'s-todo','進行中':'s-wip','審核中':'s-rev','已完成':'s-done','延遲':'s-late'};
+  document.getElementById('meeting-list').innerHTML=meetings.map((m,i)=>`
+    <div class="m-card">
+      <div class="m-hdr" onclick="toggleM(${i})">
+        <div class="m-dt">${m.date}</div>
+        <div><div class="m-title">${m.title}</div><div class="m-meta">出席：${m.att} ｜ 時長：${m.dur}</div></div>
+        <div class="m-arr" id="ma-${i}">▼</div>
+      </div>
+      <div class="m-body" id="mb-${i}">
+        <div class="m-sec-lbl">討論主題</div>
+        ${m.topics.map(t=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">• ${t}</div>`).join('')}
+        <div class="m-sec-lbl">行動項目</div>
+        ${m.actions.map(a=>{
+          const mc=members.find(x=>x.name===a.p)||{color:'#94a3b8',bg:'rgba(148,163,184,.2)'};
+          return `<div class="m-ai">
+            <span style="width:26px;height:26px;border-radius:50%;background:${mc.bg};color:${mc.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${a.p[0]}</span>
+            <div style="flex:1"><div style="font-size:12px">${a.t}</div><div style="font-size:11px;color:var(--text-muted)">${a.p} ｜ 截止：${a.d}</div></div>
+            <span class="sb ${sCls[a.s]||'s-todo'}">${a.s}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+  toggleM(0);
+}
+function toggleM(i){document.getElementById('mb-'+i).classList.toggle('open');document.getElementById('ma-'+i).classList.toggle('open');}
+
+// ═══ UI HELPERS ═══
+function showBadge(show,msg=''){
+  document.getElementById('data-badge').style.display=show?'flex':'none';
+  if(msg)document.getElementById('badge-msg').textContent=msg;
+}
+function hideErr(){document.getElementById('err-banner').style.display='none';}
+function showErr(msg){const el=document.getElementById('err-banner');el.textContent=msg;el.style.display='block';}
+
+// ═══ MATH HELPERS ═══
+function fN(n){return Number(Math.round(n)||0).toLocaleString('zh-TW');}
+function num(s){return parseFloat(String(s||0).replace(/[,，%]/g,''))||0;}
+function calcPct(c,p){if(!p)return 0;return(c-p)/p*100;}
+function pct(c,p){
+  if(!p)return{text:'—',up:false,flat:true};
+  const d=(c-p)/p*100;
+  if(Math.abs(d)<0.05)return{text:'0.0%',up:false,flat:true};
+  return{text:(d>0?'+':'')+d.toFixed(1)+'%',up:d>0,flat:false};
+}
+</script>
+</body>
+</html>
