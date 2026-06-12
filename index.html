@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>行銷例會 Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 :root{--bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;--border:#2d3151;--accent:#4a6cf7;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--text:#e2e8f0;--text-muted:#94a3b8;--fs:14px;}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -385,28 +387,24 @@ const PRODUCTS = [
 ];
 
 // ═══ STATE ═══
+// ═══ FIREBASE ═══
+const firebaseConfig = {
+  apiKey: "AIzaSyAmZ9T696dq6NH0D7zGXf6_eI0hQIF2cAk",
+  authDomain: "marketing-dashboard-a3c07.firebaseapp.com",
+  databaseURL: "https://marketing-dashboard-a3c07-default-rtdb.firebaseio.com",
+  projectId: "marketing-dashboard-a3c07",
+  storageBucket: "marketing-dashboard-a3c07.firebasestorage.app",
+  messagingSenderId: "218349191040",
+  appId: "1:218349191040:web:d507be539d66dc20768b65"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 let curProd = 0; // 0-2 = single product, 3 = all
 let cache = {}; // gid -> parsed data
 const charts = {};
 let personFilter = '';
-let nextTodoId = 16;
-let todos = [
-  {id:1,task:'規劃 W25 活動上線節奏與資源排程',person:'王小明',source:'W24 例會',due:'2026/06/12',pri:'高',status:'進行中',progress:60,note:'需跨部門對齊'},
-  {id:2,task:'製作 6 月份暑期活動素材包（Banner×3, 影片×1）',person:'陳小美',source:'W24 例會',due:'2026/06/13',pri:'高',status:'進行中',progress:40,note:'需確認視覺方向'},
-  {id:3,task:'輸出上週廣告投放 ROI 分析報告',person:'陳小美',source:'W23 例會',due:'2026/06/10',pri:'高',status:'已完成',progress:100,note:'已上傳 Drive'},
-  {id:4,task:'撰寫 W24 社群週報並同步至 Slack',person:'李小華',source:'W24 例會',due:'2026/06/09',pri:'中',status:'已完成',progress:100,note:''},
-  {id:5,task:'調查競品近期增長策略，整理成競品簡報',person:'張小強',source:'W24 例會',due:'2026/06/14',pri:'中',status:'進行中',progress:25,note:''},
-  {id:6,task:'撰寫暑期活動 Blog 文章 2 篇',person:'林阿志',source:'W24 例會',due:'2026/06/15',pri:'中',status:'待開始',progress:0,note:''},
-  {id:7,task:'更新官方 Facebook 粉絲團封面照',person:'李小華',source:'W23 例會',due:'2026/06/10',pri:'低',status:'已完成',progress:100,note:''},
-  {id:8,task:'整理 KOL 合作清單並提交審核',person:'王小明',source:'W23 例會',due:'2026/06/11',pri:'高',status:'審核中',progress:90,note:'待主管確認'},
-  {id:9,task:'建立新用戶問卷並部署至遊戲內',person:'張小強',source:'W23 例會',due:'2026/06/16',pri:'中',status:'待開始',progress:0,note:''},
-  {id:10,task:'製作 YouTube 攻略短片腳本',person:'林阿志',source:'W24 例會',due:'2026/06/18',pri:'低',status:'待開始',progress:0,note:'配合版本更新'},
-  {id:11,task:'分析上週活動轉換率並提出優化建議',person:'陳小美',source:'W24 例會',due:'2026/06/11',pri:'高',status:'延遲',progress:10,note:'資料還未完整'},
-  {id:12,task:'更新行銷月度 Dashboard 到 Google Sheets',person:'王小明',source:'W24 例會',due:'2026/06/13',pri:'中',status:'待開始',progress:0,note:''},
-  {id:13,task:'協調 KOL 直播合作日期（目標 6/20）',person:'李小華',source:'W24 例會',due:'2026/06/12',pri:'高',status:'進行中',progress:50,note:'已聯絡 3 位 KOL'},
-  {id:14,task:'整理用戶回饋報告（NPS 調查結果）',person:'張小強',source:'W23 例會',due:'2026/06/09',pri:'中',status:'已完成',progress:100,note:''},
-  {id:15,task:'拍攝暑假主題短視頻（TikTok×2）',person:'林阿志',source:'W24 例會',due:'2026/06/20',pri:'中',status:'待開始',progress:0,note:'需協調攝影師'},
-];
+let todos = []; // 由 Firebase 即時同步
 let members = [
   {name:'王小明',role:'行銷總監',color:'#4a6cf7',bg:'rgba(74,108,247,0.2)'},
   {name:'李小華',role:'社群媒體',color:'#10b981',bg:'rgba(16,185,129,0.2)'},
@@ -451,6 +449,17 @@ function checkPw() {
     document.getElementById('pw-err').style.display = 'block';
   }
 }
+
+// ═══ FIREBASE 即時監聽 ═══
+db.ref('todos').on('value', function(snapshot) {
+  todos = [];
+  snapshot.forEach(function(child) {
+    todos.push(Object.assign({_key: child.key}, child.val()));
+  });
+  todos.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  renderTodos();
+  renderPersonStats();
+});
 
 // ═══ INIT ═══
 function initApp() {
@@ -1127,21 +1136,21 @@ function renderTodos() {
     const over=isOverdue(t.due,t.status);
     return `<tr>
       <td style="color:var(--text-muted);font-size:11px">${i+1}</td>
-      <td><input class="ie" value="${t.task}" style="width:100%;min-width:170px" onchange="updTodo(${t.id},'task',this.value)"></td>
+      <td><input class="ie" value="${t.task}" style="width:100%;min-width:170px" onchange="updTodo('${t._key}','task',this.value)"></td>
       <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:20px;height:20px;border-radius:50%;background:${m.bg};color:${m.color};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${t.person[0]}</span>${t.person}</span></td>
       <td style="color:var(--text-muted);font-size:11px">${t.source}</td>
       <td style="${over?'color:var(--red);font-weight:600':''}">${t.due||'—'}</td>
       <td><span class="${pCls[t.pri]}">${t.pri}</span></td>
-      <td><select class="fs" style="width:84px;padding:3px 5px;font-size:11px" onchange="updTodo(${t.id},'status',this.value)">
+      <td><select class="fs" style="width:84px;padding:3px 5px;font-size:11px" onchange="updTodo('${t._key}','status',this.value)">
         ${['待開始','進行中','審核中','已完成','延遲'].map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><div style="display:flex;align-items:center;gap:5px">
         <div class="prog-bar" style="flex:1;min-width:50px"><div class="prog-fill" style="width:${t.progress}%;background:${pc}"></div></div>
-        <input type="number" min="0" max="100" value="${t.progress}" style="width:36px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:11px;padding:1px 3px;text-align:center" onchange="updTodo(${t.id},'progress',Math.min(100,Math.max(0,parseInt(this.value)||0)))">
+        <input type="number" min="0" max="100" value="${t.progress}" style="width:36px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:11px;padding:1px 3px;text-align:center" onchange="updTodo('${t._key}','progress',Math.min(100,Math.max(0,parseInt(this.value)||0)))">
         <span style="font-size:10px;color:var(--text-muted)">%</span>
       </div></td>
-      <td><input class="ie" value="${t.note||''}" placeholder="備註..." style="width:100%;min-width:70px;font-size:11px" onchange="updTodo(${t.id},'note',this.value)"></td>
-      <td><button class="btn-ic btn-del" onclick="delTodo(${t.id})">✕</button></td>
+      <td><input class="ie" value="${t.note||''}" placeholder="備註..." style="width:100%;min-width:70px;font-size:11px" onchange="updTodo('${t._key}','note',this.value)"></td>
+      <td><button class="btn-ic btn-del" onclick="delTodo('${t._key}')">✕</button></td>
     </tr>`;
   }).join('');
 }
@@ -1150,18 +1159,17 @@ function addTodo(){
   const task=document.getElementById('t-task').value.trim();
   const person=document.getElementById('t-person').value;
   if(!task||!person){alert('請填寫任務名稱與負責人');return;}
-  todos.unshift({id:nextTodoId++,task,person,source:'手動新增',
+  db.ref('todos').push({task,person,source:'手動新增',
     due:document.getElementById('t-due').value.replace(/-/g,'/')||'',
-    pri:document.getElementById('t-pri').value,status:'待開始',progress:0,note:''});
+    pri:document.getElementById('t-pri').value,status:'待開始',progress:0,note:'',
+    createdAt: Date.now()});
   document.getElementById('t-task').value='';document.getElementById('t-person').value='';document.getElementById('t-due').value='';
-  renderTodos();renderPersonStats();
 }
-function updTodo(id,field,value){
-  const t=todos.find(x=>x.id===id);if(!t)return;
-  t[field]=field==='progress'?parseInt(value):value;
-  if(['status','progress'].includes(field)){renderPersonStats();renderTodos();}
+function updTodo(key,field,value){
+  const upd={};upd[field]=field==='progress'?parseInt(value):value;
+  db.ref('todos/'+key).update(upd);
 }
-function delTodo(id){if(!confirm('確定刪除？'))return;todos=todos.filter(t=>t.id!==id);renderTodos();renderPersonStats();}
+function delTodo(key){if(!confirm('確定刪除？'))return;db.ref('todos/'+key).remove();}
 
 // ═══ MEETINGS ═══
 function renderMeetings() {
