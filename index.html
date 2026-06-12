@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>行銷例會 Dashboard</title>
+<title>例會 Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -208,7 +208,7 @@ tr:hover td{background:rgba(74,108,247,.04)}
 <div id="pw-overlay">
   <div class="pw-card">
     <div style="font-size:34px;margin-bottom:10px">📊</div>
-    <h2>行銷例會 Dashboard</h2>
+    <h2>例會 Dashboard</h2>
     <p>請輸入密碼以繼續</p>
     <input class="pw-in" type="password" id="pw-in" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')checkPw()">
     <button class="pw-btn" onclick="checkPw()">進入</button>
@@ -226,7 +226,7 @@ tr:hover td{background:rgba(74,108,247,.04)}
 
   <!-- Header -->
   <div class="hdr">
-    <div class="hdr-title">📊 行銷例會</div>
+    <div class="hdr-title">📊 例會</div>
     <div class="prod-tabs" id="prod-tabs">
       <div class="prod-tab active" data-idx="0" onclick="switchProd(0)">蛋仔派對</div>
       <div class="prod-tab" data-idx="1" onclick="switchProd(1)">逆水寒</div>
@@ -251,8 +251,9 @@ tr:hover td{background:rgba(74,108,247,.04)}
     <div class="nav-tab active" onclick="switchTab(0)">週報總覽</div>
     <div class="nav-tab" onclick="switchTab(1)">每日明細</div>
     <div class="nav-tab" onclick="switchTab(2)">近10週趨勢</div>
-    <div class="nav-tab" onclick="switchTab(3)">待辦追蹤</div>
-    <!-- <div class="nav-tab" onclick="switchTab(4)">例會記錄</div> -->
+    <div class="nav-tab" onclick="switchTab(3)">行銷待辦追蹤</div>
+    <div class="nav-tab" onclick="switchTab(4)">運營待辦追蹤</div>
+    <!-- <div class="nav-tab" onclick="switchTab(5)">例會記錄</div> -->
   </div>
 
   <div class="main">
@@ -349,7 +350,7 @@ tr:hover td{background:rgba(74,108,247,.04)}
       </div>
     </div>
 
-    <!-- Tab 3: 待辦追蹤 -->
+    <!-- Tab 3: 行銷待辦追蹤 -->
     <div class="tab-pane" id="tp-3">
       <div class="add-form">
         <div style="font-size:13px;font-weight:600;margin-bottom:12px">➕ 新增待辦事項</div>
@@ -403,8 +404,63 @@ tr:hover td{background:rgba(74,108,247,.04)}
       </div>
     </div>
 
-    <!-- Tab 4: 例會記錄 -->
+
+    <!-- Tab 4: 運營待辦追蹤 -->
     <div class="tab-pane" id="tp-4">
+      <div class="add-form">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px">➕ 新增待辦事項</div>
+        <div class="fg">
+          <div><label class="fl-lbl">任務名稱 *</label><input class="fi" id="op-t-task" placeholder="輸入任務描述..."></div>
+          <div><label class="fl-lbl">負責人 *</label>
+            <select class="fs" id="op-t-person">
+              <option value="">選擇負責人</option>
+            </select></div>
+          <div><label class="fl-lbl">截止日期</label><input class="fi" type="date" id="op-t-due"></div>
+          <div><label class="fl-lbl">優先級</label>
+            <select class="fs" id="op-t-pri">
+              <option value="高">🔴 高</option><option value="中" selected>🟡 中</option><option value="低">🟢 低</option>
+            </select></div>
+          <div><label class="fl-lbl">&nbsp;</label><button class="btn-p" onclick="addOpsTodo()">新增</button></div>
+        </div>
+      </div>
+      <!-- Ops Member management -->
+      <div class="mbr-panel">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">👥 成員管理</div>
+        <div class="mbr-list" id="op-mbr-list"></div>
+        <div class="mbr-add-row">
+          <input class="fi" id="op-mbr-name" placeholder="姓名" style="width:110px">
+          <input class="fi" id="op-mbr-role" placeholder="職責（選填）" style="width:140px">
+          <button class="btn-p" onclick="addOpsMember()">＋ 新增成員</button>
+        </div>
+      </div>
+
+      <div id="op-p-stats-row"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="pf-row" id="op-pf-row" style="margin-bottom:0"></div>
+        <div style="margin-left:auto;display:flex;gap:7px">
+          <select class="fs" id="op-f-status" onchange="renderOpsTodos()" style="width:110px">
+            <option value="">全部狀態</option>
+            <option>待開始</option><option>進行中</option><option>審核中</option><option>已完成</option><option>延遲</option>
+          </select>
+          <select class="fs" id="op-f-pri" onchange="renderOpsTodos()" style="width:95px">
+            <option value="">全部優先</option><option>高</option><option>中</option><option>低</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh">
+          <div class="sh-title" id="op-todo-title">全部待辦</div>
+          <div style="font-size:12px;color:var(--text-muted)" id="op-todo-cnt"></div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>任務名稱</th><th>負責人</th><th>來源</th><th>截止</th><th>優先</th><th>狀態</th><th style="min-width:130px">進度</th><th>備註</th><th>操作</th></tr></thead>
+          <tbody id="op-todo-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- Tab 5: 例會記錄 -->
+    <div class="tab-pane" id="tp-5">
       <div class="sh" style="margin-bottom:16px">
         <div class="sh-title">例會記錄</div>
         <div style="font-size:12px;color:var(--text-muted)">最近 4 次</div>
@@ -445,6 +501,9 @@ let cache = {}; // gid -> parsed data
 const charts = {};
 let personFilter = '';
 let todos = []; // 由 Firebase 即時同步
+let opsTodos = []; // 運營待辦
+let opsMembers = []; // 運營成員
+let opsPersonFilter = '';
 let members = []; // 由 Firebase 即時同步
 const MEMBER_COLORS = [
   {color:'#4a6cf7',bg:'rgba(74,108,247,0.2)'},
@@ -515,6 +574,28 @@ function initApp() {
   renderMeetings();
   loadProduct(0);
 }
+
+
+db.ref('ops/todos').on('value', function(snapshot) {
+  opsTodos = [];
+  snapshot.forEach(function(child) {
+    opsTodos.push(Object.assign({_key: child.key}, child.val()));
+  });
+  opsTodos.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  renderOpsTodos();
+  renderOpsPersonStats();
+});
+
+db.ref('ops/members').on('value', function(snapshot) {
+  opsMembers = [];
+  snapshot.forEach(function(child) {
+    opsMembers.push(Object.assign({_key: child.key}, child.val()));
+  });
+  renderOpsMemberMgmt();
+  renderOpsPersonFilters();
+  renderOpsPersonStats();
+  renderOpsTodos();
+});
 
 // ═══ NAVIGATION ═══
 function switchTab(idx) {
@@ -1215,6 +1296,133 @@ function updTodo(key,field,value){
   db.ref('todos/'+key).update(upd);
 }
 function delTodo(key){if(!confirm('確定刪除？'))return;db.ref('todos/'+key).remove();}
+// ═══ OPS TODOS ═══
+function renderOpsMemberMgmt() {
+  const list = document.getElementById('op-mbr-list');
+  if (!list) return;
+  list.innerHTML = opsMembers.map((m) => `
+    <div class="mbr-chip">
+      <span class="mbr-ava" style="background:${m.bg};color:${m.color}">${m.name[0]}</span>
+      <span style="font-weight:600">${m.name}</span>
+      ${m.role ? `<span style="color:var(--text-muted)">${m.role}</span>` : ''}
+      <button class="mbr-del" onclick="delOpsMember('${m._key}')" title="刪除 ${m.name}">✕</button>
+    </div>`).join('');
+  const sel = document.getElementById('op-t-person');
+  const prev = sel ? sel.value : '';
+  if (sel) sel.innerHTML = '<option value="">選擇負責人</option>' +
+    opsMembers.map(m => `<option ${m.name===prev?'selected':''}>${m.name}</option>`).join('');
+}
+
+function addOpsMember() {
+  const name = document.getElementById('op-mbr-name').value.trim();
+  if (!name) { document.getElementById('op-mbr-name').focus(); return; }
+  if (opsMembers.find(m => m.name === name)) { alert(`「${name}」已存在`); return; }
+  const palette = MEMBER_COLORS[opsMembers.length % MEMBER_COLORS.length];
+  const role = document.getElementById('op-mbr-role').value.trim();
+  db.ref('ops/members').push({ name, role, color: palette.color, bg: palette.bg });
+  document.getElementById('op-mbr-name').value = '';
+  document.getElementById('op-mbr-role').value = '';
+}
+
+function delOpsMember(key) {
+  const m = opsMembers.find(m => m._key === key);
+  if (!m) return;
+  const hasTodos = opsTodos.some(t => t.person === m.name);
+  if (hasTodos && !confirm(`「${m.name}」有待辦事項，刪除後仍保留待辦但不顯示於成員卡片。確定繼續？`)) return;
+  if (!hasTodos && !confirm(`確定刪除「${m.name}」？`)) return;
+  if (opsPersonFilter === m.name) opsPersonFilter = '';
+  db.ref('ops/members/' + key).remove();
+}
+
+function renderOpsPersonFilters() {
+  const row = document.getElementById('op-pf-row');
+  if (!row) return;
+  row.innerHTML =
+    `<div class="pf-btn ${!opsPersonFilter?'active':''}" onclick="setOpsPF('')">全部</div>` +
+    opsMembers.map(m=>`<div class="pf-btn ${opsPersonFilter===m.name?'active':''}" onclick="setOpsPF('${m.name}')">${m.name}</div>`).join('');
+}
+
+function setOpsPF(name) {
+  opsPersonFilter = name;
+  renderOpsPersonFilters();
+  renderOpsTodos();
+  const t = document.getElementById('op-todo-title');
+  if (t) t.textContent = name ? name + ' 的待辦' : '全部待辦';
+}
+
+function renderOpsPersonStats() {
+  const row = document.getElementById('op-p-stats-row');
+  if (!row) return;
+  row.innerHTML = '<div class="p-stats">' +
+    opsMembers.map(m => {
+      const mt = opsTodos.filter(t => t.person === m.name);
+      const done = mt.filter(t => t.status === '已完成').length;
+      const late = mt.filter(t => t.status === '延遲').length;
+      const rate = mt.length ? Math.round(done / mt.length * 100) : 0;
+      return `<div class="p-card" onclick="setOpsPF('${m.name}')">
+        <div class="p-ava" style="background:${m.bg};color:${m.color}">${m.name[0]}</div>
+        <div class="p-name">${m.name}</div><div class="p-role">${m.role}</div>
+        <div class="p-pt"><span>完成 ${done}/${mt.length}</span><span style="color:${late?'var(--red)':'var(--text-muted)'}">${late?late+'項延遲':rate+'%'}</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${rate}%;background:${m.color}"></div></div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function renderOpsTodos() {
+  const sf = document.getElementById('op-f-status')?.value || '';
+  const pf = document.getElementById('op-f-pri')?.value || '';
+  const list = opsTodos.filter(t => (!opsPersonFilter || t.person === opsPersonFilter) && (!sf || t.status === sf) && (!pf || t.pri === pf));
+  const cnt = document.getElementById('op-todo-cnt');
+  if (cnt) cnt.textContent = `共 ${list.length} 項`;
+  const sCls = {'待開始':'s-todo','進行中':'s-wip','審核中':'s-rev','已完成':'s-done','延遲':'s-late'};
+  const pCls = {'高':'p-hi','中':'p-md','低':'p-lo'};
+  const tbody = document.getElementById('op-todo-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = list.map((t, i) => {
+    const m = opsMembers.find(x => x.name === t.person) || {color:'#94a3b8',bg:'rgba(148,163,184,0.2)'};
+    const pc = t.progress >= 100 ? 'var(--green)' : t.status === '延遲' ? 'var(--red)' : 'var(--accent)';
+    const over = isOverdue(t.due, t.status);
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:11px">${i+1}</td>
+      <td><input class="ie" value="${t.task}" style="width:100%;min-width:170px" onchange="updOpsTodo('${t._key}','task',this.value)"></td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:20px;height:20px;border-radius:50%;background:${m.bg};color:${m.color};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${t.person[0]}</span>${t.person}</span></td>
+      <td style="color:var(--text-muted);font-size:11px">${t.source}</td>
+      <td style="${over?'color:var(--red);font-weight:600':''}">${t.due||'—'}</td>
+      <td><span class="${pCls[t.pri]}">${t.pri}</span></td>
+      <td><select class="fs" style="width:84px;padding:3px 5px;font-size:11px" onchange="updOpsTodo('${t._key}','status',this.value)">
+        ${['待開始','進行中','審核中','已完成','延遲'].map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td><div style="display:flex;align-items:center;gap:5px">
+        <div class="prog-bar" style="flex:1;min-width:50px"><div class="prog-fill" style="width:${t.progress}%;background:${pc}"></div></div>
+        <input type="number" min="0" max="100" value="${t.progress}" style="width:36px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:11px;padding:1px 3px;text-align:center" onchange="updOpsTodo('${t._key}','progress',Math.min(100,Math.max(0,parseInt(this.value)||0)))">
+        <span style="font-size:10px;color:var(--text-muted)">%</span>
+      </div></td>
+      <td><input class="ie" value="${t.note||''}" placeholder="備註..." style="width:100%;min-width:70px;font-size:11px" onchange="updOpsTodo('${t._key}','note',this.value)"></td>
+      <td><button class="btn-ic btn-del" onclick="delOpsTodo('${t._key}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function addOpsTodo() {
+  const task = document.getElementById('op-t-task').value.trim();
+  const person = document.getElementById('op-t-person').value;
+  if (!task || !person) { alert('請填寫任務名稱與負責人'); return; }
+  db.ref('ops/todos').push({task, person, source:'手動新增',
+    due: document.getElementById('op-t-due').value.replace(/-/g, '/') || '',
+    pri: document.getElementById('op-t-pri').value, status:'待開始', progress:0, note:'',
+    createdAt: Date.now()});
+  document.getElementById('op-t-task').value = '';
+  document.getElementById('op-t-person').value = '';
+  document.getElementById('op-t-due').value = '';
+}
+
+function updOpsTodo(key, field, value) {
+  const upd = {}; upd[field] = field === 'progress' ? parseInt(value) : value;
+  db.ref('ops/todos/' + key).update(upd);
+}
+
+function delOpsTodo(key) { if (!confirm('確定刪除？')) return; db.ref('ops/todos/' + key).remove(); }
+
 
 // ═══ MEETINGS ═══
 function renderMeetings() {
